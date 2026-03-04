@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Two Sum II — Sorted Array | Two Pointer</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Clash+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #05080F;
+  --s1:      #080E1A;
+  --s2:      #0B1220;
+  --card:    #0E1628;
+  --border:  #1A2540;
+  --border2: #22305A;
+
+  --text:    #D4E4FF;
+  --muted:   #4A6080;
+  --dim:     #1E2D45;
+
+  --left:    #00C2FF;   /* left pointer */
+  --right:   #FF5E85;  /* right pointer */
+  --hit:     #00E5A0;  /* match! */
+  --warn:    #FFB830;
+
+  --kw:  #FF7B9C;
+  --fn:  #70B8FF;
+  --str: #A5D6FF;
+  --num: #FFD166;
+  --cmt: #3A5070;
+  --ok:  #00E5A0;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── BACKGROUND ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 20%, rgba(0,194,255,.06) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 80% 80%, rgba(255,94,133,.05) 0%, transparent 60%);
+  pointer-events: none; z-index: 0;
+}
+
+/* ── SCANLINES ── */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,.08) 2px, rgba(0,0,0,.08) 4px
+  );
+  pointer-events: none; z-index: 0; opacity: .4;
+}
+
+/* ── LAYOUT ── */
+.page { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+
+/* ── TOP BAR ── */
+.topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 0; border-bottom: 1px solid var(--border);
+  margin-bottom: 48px; flex-wrap: wrap;
+}
+.back-link {
+  font-size: 11px; color: var(--muted); text-decoration: none;
+  border: 1px solid var(--border); padding: 4px 10px; border-radius: 3px;
+  transition: all .15s;
+}
+.back-link:hover { color: var(--text); border-color: var(--left); }
+.breadcrumb {
+  font-size: 11px; color: var(--muted);
+  display: flex; align-items: center; gap: 6px;
+}
+.breadcrumb span { color: var(--text); }
+.pill {
+  font-size: 10px; padding: 3px 9px; border-radius: 20px;
+  border: 1px solid; margin-left: auto;
+}
+.pill-t1 { color: var(--warn); border-color: rgba(255,184,48,.3); background: rgba(255,184,48,.06); }
+
+/* ── HERO ── */
+.hero { margin-bottom: 40px; }
+.hero-label {
+  font-size: 10px; letter-spacing: .2em; color: var(--left);
+  text-transform: uppercase; margin-bottom: 14px; opacity: .8;
+}
+.hero-title {
+  font-family: 'Clash Display', 'IBM Plex Mono', monospace;
+  font-size: clamp(28px, 5vw, 46px);
+  font-weight: 700; line-height: 1.08;
+  letter-spacing: -.02em; margin-bottom: 16px;
+}
+.hero-title .tp { color: var(--left); }
+.hero-title .tp2 { color: var(--right); }
+.hero-meta {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  font-size: 11px; color: var(--muted);
+}
+.tag {
+  padding: 3px 9px; border-radius: 3px; border: 1px solid;
+  font-size: 10px;
+}
+.tag-left  { color: var(--left);  border-color: rgba(0,194,255,.25);  background: rgba(0,194,255,.06);  }
+.tag-right { color: var(--right); border-color: rgba(255,94,133,.25); background: rgba(255,94,133,.06); }
+.tag-hit   { color: var(--hit);   border-color: rgba(0,229,160,.25);  background: rgba(0,229,160,.06);  }
+.tag-warn  { color: var(--warn);  border-color: rgba(255,184,48,.25); background: rgba(255,184,48,.06); }
+.tag-dim   { color: var(--muted); border-color: var(--border); }
+
+/* ── SECTION ── */
+.section { margin-bottom: 36px; }
+.section-label {
+  font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── STATEMENT BOX ── */
+.statement-box {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 6px; padding: 20px 22px;
+  font-size: 14px; line-height: 1.75; color: var(--text);
+  border-left: 3px solid var(--left);
+}
+.statement-box strong { color: var(--left); }
+.statement-box code {
+  color: var(--num); background: rgba(255,209,102,.08);
+  padding: 1px 5px; border-radius: 2px; font-size: 13px;
+}
+
+/* ── KEY CONSTRAINT ── */
+.constraint-banner {
+  display: flex; align-items: center; gap: 14px;
+  background: rgba(0,229,160,.05); border: 1px solid rgba(0,229,160,.2);
+  border-radius: 5px; padding: 14px 18px; margin-top: 12px;
+}
+.constraint-icon { font-size: 20px; }
+.constraint-text { font-size: 13px; color: var(--text); line-height: 1.6; }
+.constraint-text strong { color: var(--hit); }
+
+/* ── IO GRID ── */
+.io-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media(max-width:560px){.io-grid{grid-template-columns:1fr;}}
+.io-box {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 5px; padding: 14px 16px;
+}
+.io-lbl { font-size: 9px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+.io-val { font-size: 12.5px; color: var(--hit); line-height: 1.65; }
+.io-cmt { color: var(--cmt); }
+.io-note { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ── APPROACH COMPARE ── */
+.approach-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media(max-width:560px){.approach-row{grid-template-columns:1fr;}}
+.ap-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 5px; padding: 16px;
+}
+.ap-card.bad  { border-color: rgba(255,94,133,.2); background: rgba(255,94,133,.04); }
+.ap-card.good { border-color: rgba(0,229,160,.2);  background: rgba(0,229,160,.04); }
+.ap-title { font-size: 11px; font-weight: 700; margin-bottom: 8px; }
+.ap-card.bad  .ap-title { color: var(--right); }
+.ap-card.good .ap-title { color: var(--hit); }
+.ap-body { font-size: 12.5px; color: var(--muted); line-height: 1.6; margin-bottom: 10px; }
+.ap-body strong { color: var(--text); }
+.ap-tc { font-size: 11px; display: flex; gap: 12px; }
+.tc { color: #BC8CFF; } .sc { color: var(--left); }
+
+/* ── VISUAL SIMULATOR ── */
+.simulator {
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: 8px; overflow: hidden;
+}
+.sim-header {
+  background: var(--s2); padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sim-title { font-size: 11px; color: var(--text); font-weight: 600; }
+.sim-controls { display: flex; gap: 8px; }
+.sim-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; padding: 6px 14px; border-radius: 4px;
+  border: 1px solid var(--border2); cursor: pointer;
+  transition: all .15s; font-weight: 600;
+}
+.sim-btn.primary { background: var(--left); border-color: var(--left); color: #000; }
+.sim-btn.primary:hover { background: #33CFFF; }
+.sim-btn.secondary { background: transparent; color: var(--muted); }
+.sim-btn.secondary:hover { border-color: var(--muted); color: var(--text); }
+.sim-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+.sim-body { padding: 24px 20px; }
+
+/* Array visualization */
+.array-viz { margin-bottom: 28px; }
+.array-label { font-size: 10px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; }
+.array-row {
+  display: flex; gap: 6px; flex-wrap: wrap; align-items: flex-start;
+  margin-bottom: 8px;
+}
+.arr-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  min-width: 44px;
+}
+.arr-val {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700;
+  border: 2px solid var(--border2);
+  border-radius: 5px;
+  background: var(--s2);
+  transition: all .35s ease;
+  position: relative;
+}
+.arr-idx { font-size: 9px; color: var(--muted); }
+
+.arr-cell.left-ptr  .arr-val { border-color: var(--left);  background: rgba(0,194,255,.12);  color: var(--left); }
+.arr-cell.right-ptr .arr-val { border-color: var(--right); background: rgba(255,94,133,.12); color: var(--right); }
+.arr-cell.both-ptr  .arr-val { border-color: var(--warn);  background: rgba(255,184,48,.12); color: var(--warn); }
+.arr-cell.match-ptr .arr-val { border-color: var(--hit); background: rgba(0,229,160,.15); color: var(--hit);
+  box-shadow: 0 0 16px rgba(0,229,160,.3); }
+
+.ptr-label {
+  font-size: 9px; font-weight: 700; letter-spacing: .05em;
+  padding: 2px 5px; border-radius: 2px;
+}
+.ptr-left  { color: var(--left);  background: rgba(0,194,255,.15); }
+.ptr-right { color: var(--right); background: rgba(255,94,133,.15); }
+.ptr-both  { color: var(--warn);  background: rgba(255,184,48,.15); }
+.ptr-match { color: var(--hit);   background: rgba(0,229,160,.15); }
+
+/* Status panel */
+.sim-status {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px; margin-bottom: 20px;
+}
+.stat-box {
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 5px; padding: 12px;
+}
+.stat-lbl { font-size: 9px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; }
+.stat-val { font-size: 16px; font-weight: 700; }
+.stat-val.left-c  { color: var(--left); }
+.stat-val.right-c { color: var(--right); }
+.stat-val.sum-c   { color: var(--warn); }
+.stat-val.res-c   { color: var(--hit); }
+
+/* Log */
+.sim-log {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: 5px; padding: 12px 14px;
+  font-size: 12px; line-height: 1.65; min-height: 52px;
+  color: var(--muted); transition: all .2s;
+}
+.sim-log.action { color: var(--text); }
+.sim-log .hl-left  { color: var(--left); font-weight: 600; }
+.sim-log .hl-right { color: var(--right); font-weight: 600; }
+.sim-log .hl-sum   { color: var(--warn); font-weight: 600; }
+.sim-log .hl-hit   { color: var(--hit); font-weight: 600; }
+.sim-log .hl-shrink { color: #BC8CFF; font-weight: 600; }
+.step-counter { font-size: 10px; color: var(--muted); margin-top: 6px; }
+
+/* ── CODE BLOCK ── */
+.code-wrap {
+  background: #030508; border: 1px solid var(--border);
+  border-radius: 6px; overflow: hidden;
+}
+.code-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px; background: rgba(255,255,255,.02);
+  border-bottom: 1px solid var(--border);
+}
+.code-dots { display: flex; gap: 5px; }
+.cd { width: 10px; height: 10px; border-radius: 50%; }
+.cd1{background:#FF5E85;} .cd2{background:#FFB830;} .cd3{background:#00E5A0;}
+.code-lang { font-size: 10px; color: var(--muted); }
+.copy-btn {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  color: var(--muted); background: none; border: 1px solid var(--border);
+  padding: 3px 8px; border-radius: 3px; cursor: pointer; transition: all .15s;
+}
+.copy-btn:hover { color: var(--text); border-color: var(--muted); }
+.copy-btn.copied { color: var(--hit); border-color: var(--hit); }
+pre {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px; line-height: 1.75;
+  padding: 18px 20px; overflow-x: auto; tab-size: 2;
+}
+.kw  { color: var(--kw);  }
+.fn  { color: var(--fn);  }
+.num { color: var(--num); }
+.cmt { color: var(--cmt); font-style: italic; }
+.str { color: var(--str); }
+.ok  { color: var(--ok);  }
+.hi  { background: rgba(0,194,255,.07); display: inline-block; width: 100%; }
+
+/* ── DRY RUN TABLE ── */
+.dry-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 480px; }
+thead th {
+  font-size: 9px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); padding: 10px 12px; text-align: left;
+  border-bottom: 1px solid var(--border2);
+}
+tbody td {
+  font-size: 12px; padding: 10px 12px;
+  border-bottom: 1px solid rgba(26,37,64,.8); vertical-align: middle;
+}
+tbody tr:nth-child(even) { background: rgba(255,255,255,.015); }
+tbody tr:hover { background: rgba(0,194,255,.04); }
+.td-left  { color: var(--left); font-weight: 600; }
+.td-right { color: var(--right); font-weight: 600; }
+.td-sum   { color: var(--warn); font-weight: 600; }
+.td-hit   { color: var(--hit); font-weight: 700; }
+.td-miss  { color: var(--muted); }
+.td-action { color: var(--text); }
+
+/* ── COMPLEXITY ── */
+.cx-row {
+  display: flex; gap: 12px; flex-wrap: wrap;
+  background: rgba(188,140,255,.05); border: 1px solid rgba(188,140,255,.2);
+  border-radius: 5px; padding: 14px 18px; align-items: center;
+}
+.cx-item { display: flex; flex-direction: column; gap: 3px; }
+.cx-l { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.cx-v { font-size: 18px; font-weight: 700; color: #BC8CFF; }
+.cx-div { width: 1px; background: var(--border); align-self: stretch; }
+.cx-note { font-size: 12.5px; color: var(--muted); flex: 1; line-height: 1.6; }
+.cx-note strong { color: var(--text); }
+
+/* ── CALLOUTS ── */
+.callout {
+  display: flex; gap: 12px; border-radius: 5px; padding: 14px 16px;
+}
+.callout.tip  { background: rgba(0,229,160,.06);  border: 1px solid rgba(0,229,160,.22); }
+.callout.warn { background: rgba(255,94,133,.06); border: 1px solid rgba(255,94,133,.22); }
+.callout.note { background: rgba(0,194,255,.06);  border: 1px solid rgba(0,194,255,.22); }
+.c-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.c-head { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 5px; }
+.callout.tip  .c-head { color: var(--hit); }
+.callout.warn .c-head { color: var(--right); }
+.callout.note .c-head { color: var(--left); }
+.c-body { font-size: 12.5px; color: var(--muted); line-height: 1.65; }
+.c-body strong { color: var(--text); }
+.c-body code { color: var(--num); background: rgba(255,209,102,.08); padding: 1px 4px; border-radius: 2px; }
+
+/* ── VS TABLE ── */
+.vs-table { width: 100%; border-collapse: collapse; }
+.vs-table th {
+  font-size: 10px; letter-spacing: .1em; color: var(--muted); text-transform: uppercase;
+  padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border2);
+}
+.vs-table td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid rgba(26,37,64,.7); }
+.vs-table tbody tr:hover { background: rgba(255,255,255,.02); }
+
+/* ── VARIANTS ── */
+.variant-list { display: flex; flex-direction: column; gap: 8px; }
+.variant {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 5px; padding: 14px 16px; font-size: 13px; line-height: 1.6;
+}
+.variant strong { color: var(--warn); }
+.variant code { color: var(--num); font-size: 12px; background: rgba(255,209,102,.08); padding: 1px 5px; border-radius: 2px; }
+
+/* ── ANIM ── */
+@keyframes fadeUp { from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none} }
+.section { animation: fadeUp .4s ease both; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <a class="back-link" href="#">← Back</a>
+    <div class="breadcrumb">Arrays &amp; Two Pointer <span>›</span> <span>Two Sum II</span></div>
+    <span class="pill pill-t1">🔥 T1 Critical</span>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-label">// problem — arrays · two pointer</div>
+    <h1 class="hero-title">
+      Two Sum —<br>
+      <span class="tp">Sorted</span> Array<br>
+      <span class="tp2">Two Pointer</span>
+    </h1>
+    <div class="hero-meta">
+      <span class="tag tag-warn">Very High Frequency</span>
+      <span class="tag tag-left">Two Pointer</span>
+      <span class="tag tag-dim">Array</span>
+      <span class="tag tag-hit">O(n) time · O(1) space</span>
+    </div>
+  </div>
+
+  <!-- PROBLEM STATEMENT -->
+  <div class="section">
+    <div class="section-label">problem statement</div>
+    <div class="statement-box">
+      Given a <strong>1-indexed</strong> array of integers <code>numbers</code> that is already sorted in
+      <strong>non-decreasing order</strong>, find two numbers that add up to a specific <code>target</code>.<br><br>
+      Return the indices of the two numbers as an integer array <code>[index1, index2]</code> (1-indexed),
+      where <code>1 ≤ index1 &lt; index2 ≤ numbers.length</code>.<br><br>
+      The tests are generated such that there is <strong>exactly one solution</strong>.
+      You may <strong>not use the same element twice</strong>.
+    </div>
+    <div class="constraint-banner" style="margin-top:12px">
+      <div class="constraint-icon">⚡</div>
+      <div class="constraint-text">
+        <strong>Key constraint: The array is already sorted.</strong>
+        This is what makes Two Pointer work in O(1) space —
+        no HashMap needed. Use the sorted order to guide your pointers. Returns <strong>0-indexed</strong> result.
+      </div>
+    </div>
+  </div>
+
+  <!-- EXAMPLES -->
+  <div class="section">
+    <div class="section-label">examples</div>
+    <div class="io-grid">
+      <div class="io-box">
+        <div class="io-lbl">Input</div>
+        <div class="io-val">numbers = [2, 7, 11, 15]<br>target = 9</div>
+      </div>
+      <div class="io-box">
+        <div class="io-lbl">Output</div>
+        <div class="io-val">[0, 1] <span class="io-cmt">// 0-indexed</span></div>
+        <div class="io-note">2 + 7 = 9 → return [0, 1]</div>
+      </div>
+      <div class="io-box">
+        <div class="io-lbl">Input</div>
+        <div class="io-val">numbers = [2, 3, 4]<br>target = 6</div>
+      </div>
+      <div class="io-box">
+        <div class="io-lbl">Output</div>
+        <div class="io-val">[0, 2]</div>
+        <div class="io-note">2 + 4 = 6 → return [0, 2]</div>
+      </div>
+      <div class="io-box">
+        <div class="io-lbl">Input</div>
+        <div class="io-val">numbers = [-1, 0]<br>target = -1</div>
+      </div>
+      <div class="io-box">
+        <div class="io-lbl">Output</div>
+        <div class="io-val">[0, 1]</div>
+        <div class="io-note">-1 + 0 = -1 → return [0, 1]</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPROACH -->
+  <div class="section">
+    <div class="section-label">approach comparison</div>
+    <div class="approach-row">
+      <div class="ap-card bad">
+        <div class="ap-title">❌ HashMap (Two Sum I style)</div>
+        <div class="ap-body">Works but <strong>wastes the sorted property</strong>. Uses O(n) extra space for no benefit when the array is already ordered.</div>
+        <div class="ap-tc"><span class="tc">O(n) time</span><span class="sc">O(n) space</span></div>
+      </div>
+      <div class="ap-card good">
+        <div class="ap-title">✅ Two Pointer — Optimal</div>
+        <div class="ap-body">Left pointer starts at index 0, right at end. Sum too big? <strong>Move right left.</strong> Sum too small? <strong>Move left right.</strong></div>
+        <div class="ap-tc"><span class="tc">O(n) time</span><span class="sc">O(1) space</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTERACTIVE SIMULATOR -->
+  <div class="section">
+    <div class="section-label">interactive simulator</div>
+    <div class="simulator">
+      <div class="sim-header">
+        <span class="sim-title">// two pointer visualizer</span>
+        <div class="sim-controls">
+          <button class="sim-btn secondary" id="prevBtn" onclick="stepSim(-1)" disabled>← prev</button>
+          <button class="sim-btn primary"   id="nextBtn" onclick="stepSim(1)">next step →</button>
+          <button class="sim-btn secondary" id="resetBtn" onclick="resetSim()">reset</button>
+        </div>
+      </div>
+      <div class="sim-body">
+
+        <!-- Array display -->
+        <div class="array-viz">
+          <div class="array-label">numbers = [2, 7, 11, 15] — target = 9</div>
+          <div class="array-row" id="arrayRow"></div>
+        </div>
+
+        <!-- Status boxes -->
+        <div class="sim-status">
+          <div class="stat-box">
+            <div class="stat-lbl">Left Ptr (L)</div>
+            <div class="stat-val left-c" id="statL">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-lbl">Right Ptr (R)</div>
+            <div class="stat-val right-c" id="statR">3</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-lbl">Current Sum</div>
+            <div class="stat-val sum-c" id="statSum">—</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-lbl">Target</div>
+            <div class="stat-val" style="color:var(--text)">9</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-lbl">Result</div>
+            <div class="stat-val res-c" id="statRes">—</div>
+          </div>
+        </div>
+
+        <!-- Log -->
+        <div class="sim-log" id="simLog">Click "next step →" to start the simulation.</div>
+        <div class="step-counter" id="stepCounter">Step 0 of 3</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SOLUTION CODE -->
+  <div class="section">
+    <div class="section-label">your solution</div>
+    <div class="code-wrap">
+      <div class="code-top">
+        <div class="code-dots"><div class="cd cd1"></div><div class="cd cd2"></div><div class="cd cd3"></div></div>
+        <span class="code-lang">javascript</span>
+        <button class="copy-btn" onclick="copyCode(this)">copy</button>
+      </div>
+<pre><span class="kw">function</span> <span class="fn">twoSum</span>(<span class="fn">numbers</span>, <span class="fn">target</span>) {
+    <span class="kw">let</span> left = <span class="num">0</span>;
+    <span class="kw">let</span> right = numbers.length - <span class="num">1</span>;
+
+    <span class="kw">while</span> (left &lt; right) {
+        <span class="kw">let</span> sum = numbers[left] + numbers[right];
+
+        <span class="kw">if</span> (sum === target) {
+            <span class="kw">return</span> [left, right];  <span class="cmt">// return indices (0-indexed)</span>
+
+        } <span class="kw">else if</span> (sum &gt; target) {
+            right--;               <span class="cmt">// sum too big  → move right left</span>
+
+        } <span class="kw">else</span> {
+            left++;                <span class="cmt">// sum too small → move left right</span>
+        }
+    }
+
+    <span class="kw">return</span> -<span class="num">1</span>; <span class="cmt">// no solution found (defensive)</span>
+}
+
+console.<span class="fn">log</span>(<span class="fn">twoSum</span>([<span class="num">2</span>, <span class="num">7</span>, <span class="num">11</span>, <span class="num">15</span>], <span class="num">9</span>));  <span class="ok">// [0, 1]</span>
+console.<span class="fn">log</span>(<span class="fn">twoSum</span>([<span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>], <span class="num">6</span>));        <span class="ok">// [0, 2]</span>
+console.<span class="fn">log</span>(<span class="fn">twoSum</span>([<span class="num">-1</span>, <span class="num">0</span>], <span class="num">-1</span>));         <span class="ok">// [0, 1]</span></pre>
+    </div>
+  </div>
+
+  <!-- DRY RUN -->
+  <div class="section">
+    <div class="section-label">step-by-step dry run — [2, 7, 11, 15], target = 9</div>
+    <div class="dry-wrap">
+      <table>
+        <thead>
+          <tr><th>Step</th><th>L</th><th>R</th><th>nums[L]</th><th>nums[R]</th><th>Sum</th><th>vs Target</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td class="td-left">0</td><td class="td-right">3</td>
+            <td class="td-left">2</td><td class="td-right">15</td>
+            <td class="td-sum">17</td>
+            <td class="td-miss">17 &gt; 9</td>
+            <td class="td-action">Sum too big → R--</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td class="td-left">0</td><td class="td-right">2</td>
+            <td class="td-left">2</td><td class="td-right">11</td>
+            <td class="td-sum">13</td>
+            <td class="td-miss">13 &gt; 9</td>
+            <td class="td-action">Sum too big → R--</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td class="td-left">0</td><td class="td-right">1</td>
+            <td class="td-left">2</td><td class="td-right">7</td>
+            <td class="td-sum">9</td>
+            <td class="td-hit">✅ 9 = 9</td>
+            <td class="td-hit">return [0, 1]</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- WHY IT WORKS -->
+  <div class="section">
+    <div class="section-label">why two pointer works here</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="callout note">
+        <div class="c-icon">🧠</div>
+        <div>
+          <div class="c-head">The Sorted Array Guarantee</div>
+          <div class="c-body">Because the array is sorted, when <code>sum &gt; target</code> we <strong>know for certain</strong> that right pointer value is too large — we can safely discard it. When <code>sum &lt; target</code>, left value is too small — safely advance it. This is impossible with an unsorted array.</div>
+        </div>
+      </div>
+      <div class="callout tip">
+        <div class="c-icon">💡</div>
+        <div>
+          <div class="c-head">Why O(1) Space vs HashMap's O(n)</div>
+          <div class="c-body">Two Sum I needs a HashMap because we don't know which pairs to check. Two Sum II's sorted order gives us a <strong>deterministic decision rule</strong> at each step — no storage needed.</div>
+        </div>
+      </div>
+      <div class="callout tip">
+        <div class="c-icon">✅</div>
+        <div>
+          <div class="c-head">Your Code Uses 0-Indexed Output</div>
+          <div class="c-body">Your code returns <code>[left, right]</code> — standard 0-indexed JS style. If a problem requires 1-indexed output (like LeetCode 167), just change to <code>[left + 1, right + 1]</code>.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPLEXITY -->
+  <div class="section">
+    <div class="section-label">complexity</div>
+    <div class="cx-row">
+      <div class="cx-item"><div class="cx-l">Time</div><div class="cx-v">O(n)</div></div>
+      <div class="cx-div"></div>
+      <div class="cx-item"><div class="cx-l">Space</div><div class="cx-v">O(1)</div></div>
+      <div class="cx-div"></div>
+      <div class="cx-note"><strong>Better than Two Sum I</strong> (which is O(n) time + O(n) space). The sorted property lets us skip the HashMap entirely. Each pointer moves at most n times total.</div>
+    </div>
+  </div>
+
+  <!-- TWO SUM I VS II COMPARISON -->
+  <div class="section">
+    <div class="section-label">two sum I vs two sum II — side by side</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;overflow:hidden">
+      <table class="vs-table">
+        <thead>
+          <tr><th>Property</th><th style="color:var(--left)">Two Sum I (Unsorted)</th><th style="color:var(--hit)">Two Sum II (Sorted)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Input</td><td>Any order</td><td>Non-decreasing sorted</td></tr>
+          <tr><td>Algorithm</td><td>HashMap complement lookup</td><td>Two Pointer (L ↔ R)</td></tr>
+          <tr><td>Time</td><td>O(n)</td><td>O(n)</td></tr>
+          <tr><td>Space</td><td style="color:var(--right)">O(n) — HashMap</td><td style="color:var(--hit)">O(1) — no extra memory</td></tr>
+          <tr><td>Output</td><td>0-indexed</td><td>1-indexed</td></tr>
+          <tr><td>Key insight</td><td>Store what you've seen</td><td>Use sorted order to decide direction</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- VARIANTS -->
+  <div class="section">
+    <div class="section-label">interview variants — be ready</div>
+    <div class="variant-list">
+      <div class="variant">
+        <strong>Variant 1: Three Sum</strong> — Fix one element, run Two Pointer on the rest. Sort first, then for each <code>nums[i]</code> run Two Pointer on <code>[i+1, end]</code>.
+      </div>
+      <div class="variant">
+        <strong>Variant 2: Four Sum</strong> — Two nested loops + Two Pointer inside. O(n³).
+      </div>
+      <div class="variant">
+        <strong>Variant 3: Count pairs with sum = target</strong> — Same pattern but count all valid pairs, skip duplicates by checking <code>while (L &lt; R &amp;&amp; nums[L] === nums[L-1]) L++</code>.
+      </div>
+      <div class="variant">
+        <strong>Variant 4: Closest sum to target</strong> — Track <code>Math.abs(sum - target)</code> as minimum distance, update result when closer found.
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+// ═══════════════════════════════════════════════
+// SIMULATOR
+// ═══════════════════════════════════════════════
+const NUMS = [2, 7, 11, 15];
+const TARGET = 9;
+
+const STEPS = [
+  {
+    l: 0, r: 3,
+    sum: 2 + 15,
+    log: `<span class="hl-left">L=0 (val=2)</span> + <span class="hl-right">R=3 (val=15)</span> = <span class="hl-sum">17</span> &gt; target 9 → sum too <strong>big</strong>, move <span class="hl-shrink">R left (R--)</span>`,
+    result: '—', done: false
+  },
+  {
+    l: 0, r: 2,
+    sum: 2 + 11,
+    log: `<span class="hl-left">L=0 (val=2)</span> + <span class="hl-right">R=2 (val=11)</span> = <span class="hl-sum">13</span> &gt; target 9 → sum still too <strong>big</strong>, move <span class="hl-shrink">R left (R--)</span>`,
+    result: '—', done: false
+  },
+  {
+    l: 0, r: 1,
+    sum: 2 + 7,
+    log: `<span class="hl-left">L=0 (val=2)</span> + <span class="hl-right">R=1 (val=7)</span> = <span class="hl-hit">9</span> === target 9 → <span class="hl-hit">✅ FOUND! Return [1, 2] (1-indexed)</span>`,
+    result: '[1, 2]', done: true
+  }
+];
+
+let step = -1;
+
+function buildArray() {
+  const row = document.getElementById('arrayRow');
+  row.innerHTML = '';
+  NUMS.forEach((v, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'arr-cell';
+    cell.id = `cell-${i}`;
+    cell.innerHTML = `<div class="arr-val">${v}</div><div class="arr-idx">${i}</div>`;
+    row.appendChild(cell);
+  });
+}
+
+function renderStep(s) {
+  const { l, r, sum, log, result, done } = STEPS[s];
+  NUMS.forEach((_, i) => {
+    const cell = document.getElementById(`cell-${i}`);
+    cell.className = 'arr-cell';
+    cell.querySelector('.arr-val').innerHTML = NUMS[i];
+    // Remove pointer labels
+    const existing = cell.querySelector('.ptr-label');
+    if (existing) existing.remove();
+  });
+
+  const lCell = document.getElementById(`cell-${l}`);
+  const rCell = document.getElementById(`cell-${r}`);
+
+  if (l === r) {
+    lCell.classList.add(done ? 'match-ptr' : 'both-ptr');
+    const lbl = document.createElement('div');
+    lbl.className = `ptr-label ${done ? 'ptr-match' : 'ptr-both'}`;
+    lbl.textContent = 'L=R';
+    lCell.appendChild(lbl);
+  } else {
+    lCell.classList.add(done ? 'match-ptr' : 'left-ptr');
+    rCell.classList.add(done ? 'match-ptr' : 'right-ptr');
+
+    const ll = document.createElement('div');
+    ll.className = `ptr-label ${done ? 'ptr-match' : 'ptr-left'}`;
+    ll.textContent = 'L';
+    lCell.appendChild(ll);
+
+    const rl = document.createElement('div');
+    rl.className = `ptr-label ${done ? 'ptr-match' : 'ptr-right'}`;
+    rl.textContent = 'R';
+    rCell.appendChild(rl);
+  }
+
+  document.getElementById('statL').textContent   = l;
+  document.getElementById('statR').textContent   = r;
+  document.getElementById('statSum').textContent = sum;
+  document.getElementById('statRes').textContent = result;
+
+  const logEl = document.getElementById('simLog');
+  logEl.innerHTML = log;
+  logEl.className = 'sim-log action';
+
+  document.getElementById('stepCounter').textContent = `Step ${s + 1} of ${STEPS.length}`;
+  document.getElementById('prevBtn').disabled = s === 0;
+  document.getElementById('nextBtn').disabled = s === STEPS.length - 1;
+}
+
+function stepSim(dir) {
+  step = Math.max(0, Math.min(STEPS.length - 1, step + dir));
+  renderStep(step);
+}
+
+function resetSim() {
+  step = -1;
+  NUMS.forEach((_, i) => {
+    const cell = document.getElementById(`cell-${i}`);
+    cell.className = 'arr-cell';
+    const lbl = cell.querySelector('.ptr-label');
+    if (lbl) lbl.remove();
+  });
+  document.getElementById('statL').textContent   = '0';
+  document.getElementById('statR').textContent   = '3';
+  document.getElementById('statSum').textContent = '—';
+  document.getElementById('statRes').textContent = '—';
+  document.getElementById('simLog').textContent  = 'Click "next step →" to start the simulation.';
+  document.getElementById('simLog').className    = 'sim-log';
+  document.getElementById('stepCounter').textContent = `Step 0 of ${STEPS.length}`;
+  document.getElementById('prevBtn').disabled = true;
+  document.getElementById('nextBtn').disabled = false;
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-wrap').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText).then(() => {
+    btn.textContent = 'copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+buildArray();
+</script>
+</body>
+</html>
