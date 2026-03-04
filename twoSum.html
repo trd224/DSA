@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JS Interview Problems — Two Sum Family</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Fraunces:opsz,wght@9..144,300;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ────────────────────────────────────────────── */
+:root {
+  --bg:        #080B10;
+  --surface:   #0D1117;
+  --card:      #111520;
+  --border:    #1C2333;
+  --border2:   #243048;
+
+  --text:      #CDD9E5;
+  --muted:     #6E7E96;
+  --dim:       #2A3445;
+
+  --orange:    #FF6B35;
+  --yellow:    #FFD166;
+  --cyan:      #39D0D8;
+  --green:     #3FB950;
+  --red:       #F85149;
+  --purple:    #BC8CFF;
+  --blue:      #58A6FF;
+
+  --kw:        #FF7B72;
+  --fn:        #D2A8FF;
+  --str:       #A5D6FF;
+  --num:       #79C0FF;
+  --cmt:       #8B949E;
+  --op:        #FFA657;
+
+  --tier1: #FF6B35;
+  --tier2: #FFD166;
+  --tier3: #3FB950;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Fraunces', Georgia, serif;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── NOISE OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0; opacity: 0.5;
+}
+
+/* ── GRID LINES ── */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(88,166,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(88,166,255,0.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none; z-index: 0;
+}
+
+/* ── GLOW ORBS ── */
+.orb { position:fixed; border-radius:50%; filter:blur(140px); pointer-events:none; z-index:0; }
+.orb1 { width:600px;height:600px;background:#FF6B35;opacity:.06;top:-180px;left:-160px; }
+.orb2 { width:500px;height:500px;background:#58A6FF;opacity:.06;bottom:-120px;right:-100px; }
+
+/* ── LAYOUT ── */
+.page { position:relative; z-index:1; max-width: 960px; margin: 0 auto; padding: 0 24px 100px; }
+
+/* ── HERO ── */
+.hero {
+  padding: 80px 0 60px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 64px;
+}
+.hero-kicker {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; letter-spacing: .22em;
+  color: var(--orange); text-transform: uppercase;
+  margin-bottom: 20px; opacity: .9;
+}
+.hero-kicker span { color: var(--muted); }
+.hero h1 {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(38px, 6vw, 68px);
+  font-weight: 700; line-height: 1.0;
+  letter-spacing: -.03em;
+  margin-bottom: 20px;
+}
+.hero h1 em { font-style: italic; color: var(--orange); }
+.hero h1 strong { color: var(--yellow); font-weight: 700; }
+.hero-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; color: var(--muted);
+  max-width: 560px; line-height: 1.7;
+  margin-bottom: 36px;
+}
+.hero-chips {
+  display: flex; flex-wrap: wrap; gap: 10px;
+}
+.chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; padding: 5px 12px;
+  border-radius: 3px; border: 1px solid;
+}
+.chip-orange { color:var(--orange); border-color:rgba(255,107,53,.3); background:rgba(255,107,53,.07); }
+.chip-blue   { color:var(--blue);   border-color:rgba(88,166,255,.3); background:rgba(88,166,255,.07); }
+.chip-green  { color:var(--green);  border-color:rgba(63,185,80,.3);  background:rgba(63,185,80,.07); }
+.chip-yellow { color:var(--yellow); border-color:rgba(255,209,102,.3);background:rgba(255,209,102,.07); }
+
+/* ── OVERVIEW TABLE ── */
+.overview { margin-bottom: 72px; }
+.section-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: .18em;
+  color: var(--muted); text-transform: uppercase;
+  margin-bottom: 20px;
+}
+.overview-table { width:100%; border-collapse:collapse; }
+.overview-table thead tr { border-bottom: 1px solid var(--border2); }
+.overview-table th {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: .1em;
+  color: var(--muted); text-transform: uppercase;
+  padding: 10px 14px; text-align: left;
+}
+.overview-table td {
+  padding: 13px 14px; font-size: 14px;
+  border-bottom: 1px solid rgba(28,35,51,.8);
+  vertical-align: middle;
+}
+.overview-table tbody tr { transition: background .15s; }
+.overview-table tbody tr:hover { background: rgba(88,166,255,.04); }
+.num-cell {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; color: var(--muted); width: 36px;
+}
+.name-cell { font-weight: 600; color: var(--text); }
+.pattern-cell {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; color: var(--blue);
+}
+.tc-cell {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; color: var(--green); font-weight:600;
+}
+.tier-pill {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; padding: 3px 8px; border-radius: 3px;
+  border: 1px solid; white-space: nowrap;
+}
+.t1 { color:var(--orange); border-color:rgba(255,107,53,.3); background:rgba(255,107,53,.1); }
+.t2 { color:var(--yellow); border-color:rgba(255,209,102,.3); background:rgba(255,209,102,.1); }
+
+/* ── PROBLEM SECTION ── */
+.problem { margin-bottom: 80px; }
+.prob-header {
+  display: flex; align-items: stretch;
+  border: 1px solid var(--border2);
+  border-radius: 6px 6px 0 0;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+.prob-num {
+  background: var(--orange);
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700; font-size: 20px;
+  padding: 16px 20px;
+  display: flex; align-items: center; justify-content: center;
+  min-width: 64px; flex-shrink: 0;
+  letter-spacing: -.02em;
+}
+.prob-num.t2  { background: var(--yellow); color: #1a1a00; }
+.prob-info {
+  background: #0F1822;
+  padding: 14px 20px; flex: 1;
+  display: flex; flex-direction: column; justify-content: center;
+  gap: 4px;
+}
+.prob-title { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -.02em; }
+.prob-meta { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.meta-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted);
+}
+.meta-tag b { color: var(--blue); }
+.prob-body {
+  border: 1px solid var(--border2);
+  border-top: none; border-radius: 0 0 6px 6px;
+  overflow: hidden;
+}
+
+/* ── SECTIONS WITHIN PROBLEM ── */
+.prob-section { padding: 24px 28px; border-bottom: 1px solid var(--border); }
+.prob-section:last-child { border-bottom: none; }
+.prob-section-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: .15em;
+  color: var(--orange); text-transform: uppercase;
+  margin-bottom: 14px; opacity: .85;
+}
+
+/* ── STATEMENT ── */
+.statement {
+  font-size: 15px; color: var(--text);
+  line-height: 1.7; margin-bottom: 16px;
+}
+.statement code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; color: var(--cyan);
+  background: rgba(57,208,216,.08);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+/* ── IO BLOCK ── */
+.io-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width:600px) { .io-grid { grid-template-columns:1fr; } }
+.io-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px; padding: 14px;
+}
+.io-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: .15em;
+  color: var(--muted); text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.io-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px; color: var(--green); line-height: 1.6;
+}
+.io-comment { color: var(--cmt); }
+
+/* ── CODE BLOCK ── */
+.code-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px; overflow: hidden;
+}
+.code-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px;
+  background: rgba(255,255,255,.025);
+  border-bottom: 1px solid var(--border);
+}
+.code-dots { display:flex; gap:5px; }
+.code-dot { width:10px;height:10px;border-radius:50%; }
+.cd1{background:#F85149;} .cd2{background:#FFD166;} .cd3{background:#3FB950;}
+.code-lang {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted); letter-spacing: .05em;
+}
+.copy-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted);
+  background: none; border: 1px solid var(--border);
+  padding: 3px 8px; border-radius: 3px; cursor: pointer;
+  transition: all .15s;
+}
+.copy-btn:hover { color: var(--text); border-color: var(--muted); }
+.copy-btn.copied { color: var(--green); border-color: var(--green); }
+
+pre {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; line-height: 1.7;
+  padding: 18px 20px; overflow-x: auto;
+  tab-size: 2;
+}
+pre .kw  { color: var(--kw); }
+pre .fn  { color: var(--fn); }
+pre .str { color: var(--str); }
+pre .num { color: var(--num); }
+pre .cmt { color: var(--cmt); font-style: italic; }
+pre .op  { color: var(--op); }
+pre .var { color: var(--text); }
+pre .ok  { color: var(--green); }
+pre .bad { color: var(--red); }
+pre .hl  { background: rgba(255,107,53,.08); display: inline-block; width: 100%; }
+
+/* ── APPROACH CARDS ── */
+.approach-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media(max-width:600px){.approach-grid{grid-template-columns:1fr;}}
+.approach-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 5px; padding: 16px;
+}
+.approach-card.bad  { border-color: rgba(248,81,73,.2); background:rgba(248,81,73,.04); }
+.approach-card.good { border-color: rgba(63,185,80,.25); background:rgba(63,185,80,.04); }
+.approach-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing:.1em; text-transform:uppercase;
+  margin-bottom: 8px;
+}
+.approach-card.bad  .approach-label { color: var(--red); }
+.approach-card.good .approach-label { color: var(--green); }
+.approach-body { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.approach-body strong { color: var(--text); }
+.approach-tc {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; margin-top: 10px;
+  display: flex; gap: 12px;
+}
+.tc { color: var(--purple); } .sc { color: var(--cyan); }
+
+/* ── COMPLEXITY BANNER ── */
+.complexity-banner {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  background: rgba(188,140,255,.06);
+  border: 1px solid rgba(188,140,255,.2);
+  border-radius: 5px; padding: 14px 18px;
+  align-items: center;
+}
+.cx-item { display:flex; flex-direction:column; gap:2px; }
+.cx-label { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.1em; color:var(--muted); text-transform:uppercase; }
+.cx-value { font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:700; color: var(--purple); }
+.cx-divider { width:1px; background:var(--border); align-self:stretch; }
+.cx-note { font-size:12px; color:var(--muted); flex:1; line-height:1.5; }
+
+/* ── CALLOUT BOXES ── */
+.callout {
+  display:flex; gap:12px; align-items:flex-start;
+  border-radius:5px; padding:14px 16px;
+}
+.callout-tip  { background:rgba(63,185,80,.07);  border:1px solid rgba(63,185,80,.25); }
+.callout-warn { background:rgba(248,81,73,.07);  border:1px solid rgba(248,81,73,.25); }
+.callout-note { background:rgba(88,166,255,.07); border:1px solid rgba(88,166,255,.25); }
+.callout-icon { font-size:18px; flex-shrink:0; margin-top:1px; }
+.callout-body { flex:1; }
+.callout-head { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; margin-bottom:5px; }
+.callout-tip  .callout-head { color:var(--green); }
+.callout-warn .callout-head { color:var(--red); }
+.callout-note .callout-head { color:var(--blue); }
+.callout-text { font-size:13px; color:var(--muted); line-height:1.6; }
+.callout-text strong { color:var(--text); }
+.callout-text code { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--cyan); background:rgba(57,208,216,.1); padding:1px 4px; border-radius:2px; }
+
+/* ── DRY RUN TABLE ── */
+.dry-run { overflow-x:auto; }
+.dry-table { width:100%; border-collapse:collapse; min-width:520px; }
+.dry-table th {
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:.1em; text-transform:uppercase;
+  color:var(--muted); padding:10px 12px; text-align:left;
+  border-bottom:1px solid var(--border2); white-space:nowrap;
+}
+.dry-table td {
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  padding:10px 12px; border-bottom:1px solid rgba(28,35,51,.6);
+  vertical-align:middle;
+}
+.dry-table tbody tr:nth-child(even) { background:rgba(255,255,255,.018); }
+.dry-table tbody tr:hover { background:rgba(88,166,255,.05); }
+.dry-table .hit { color:var(--green); font-weight:600; }
+.dry-table .miss { color:var(--muted); }
+.dry-table .action { color:var(--text); }
+
+/* ── VARIANT BOX ── */
+.variant-list { display:flex; flex-direction:column; gap:8px; }
+.variant-item {
+  background: var(--surface); border:1px solid var(--border);
+  border-radius:5px; padding:12px 16px;
+  font-size:13.5px; line-height:1.6;
+}
+.variant-item strong { color:var(--yellow); }
+.variant-item code { font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--cyan); background:rgba(57,208,216,.08); padding:1px 5px; border-radius:2px; }
+
+/* ── CHEAT SHEET ── */
+.cheatsheet {
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: 8px; overflow: hidden;
+  margin-bottom: 80px;
+}
+.cheat-header {
+  background: linear-gradient(135deg, #0F1822 0%, #141C2F 100%);
+  padding: 28px 32px; border-bottom: 1px solid var(--border2);
+}
+.cheat-title { font-size: 24px; font-weight: 700; letter-spacing:-.02em; margin-bottom:6px; }
+.cheat-sub { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); }
+
+.pattern-table { width:100%; border-collapse:collapse; }
+.pattern-table th {
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:.1em; color:var(--muted); text-transform:uppercase;
+  padding:12px 20px; text-align:left;
+  border-bottom:1px solid var(--border2);
+}
+.pattern-table td {
+  padding:14px 20px; font-size:14px;
+  border-bottom:1px solid rgba(28,35,51,.6);
+  vertical-align:top;
+}
+.pattern-table tbody tr:hover { background:rgba(255,255,255,.02); }
+.pattern-when { font-weight:600; color:var(--text); line-height:1.4; }
+.pattern-use  { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--blue); line-height:1.5; }
+.pattern-probs { font-size:12.5px; color:var(--muted); }
+
+/* ── GOLDEN RULES ── */
+.rules-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:24px; }
+@media(max-width:600px){.rules-grid{grid-template-columns:1fr;}}
+.rule-card {
+  display:flex; gap:14px; align-items:flex-start;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:5px; padding:14px;
+  transition: border-color .15s;
+}
+.rule-card:hover { border-color: var(--border2); }
+.rule-num {
+  font-family:'JetBrains Mono',monospace;
+  font-size:20px; font-weight:700; color:var(--orange);
+  line-height:1; flex-shrink:0; width:24px;
+}
+.rule-text { font-size:13.5px; color:var(--text); line-height:1.5; margin-bottom:4px; }
+.rule-why  { font-size:12px; color:var(--muted); font-style:italic; }
+
+/* ── FINAL CTA ── */
+.cta-strip {
+  text-align:center; padding:40px 20px;
+  border:1px solid var(--border); border-radius:8px;
+  background: radial-gradient(ellipse at center, rgba(255,107,53,.06) 0%, transparent 70%);
+}
+.cta-text { font-size:20px; font-weight:600; margin-bottom:8px; }
+.cta-sub  { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); line-height:1.8; }
+
+/* ── SCROLL ANIMATIONS ── */
+.fade-in { opacity:0; transform:translateY(20px); transition: opacity .5s ease, transform .5s ease; }
+.fade-in.visible { opacity:1; transform:translateY(0); }
+
+/* ── STICKY NAV ── */
+.sticky-nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(8,11,16,.92);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0;
+}
+.nav-inner {
+  max-width:960px; margin:0 auto; padding:0 24px;
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+}
+.nav-logo {
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px; font-weight:600;
+  color:var(--orange); margin-right:12px;
+}
+.nav-item {
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px; color:var(--muted);
+  padding:4px 10px; border-radius:3px;
+  border:1px solid transparent; cursor:pointer;
+  transition:all .15s; text-decoration:none;
+}
+.nav-item:hover, .nav-item.active {
+  color:var(--text); border-color:var(--border2);
+  background:var(--card);
+}
+
+/* ── PROGRESS BAR ── */
+.read-progress {
+  position:fixed; top:0; left:0; right:0;
+  height:2px; background:var(--border); z-index:200;
+}
+.read-bar {
+  height:100%; background:linear-gradient(90deg, var(--orange), var(--yellow));
+  width:0%; transition:width .1s;
+}
+</style>
+</head>
+<body>
+
+<div class="read-progress"><div class="read-bar" id="readBar"></div></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<!-- ── NAV ── -->
+<nav class="sticky-nav">
+  <div class="nav-inner">
+    <span class="nav-logo">JS[]</span>
+    <a class="nav-item" href="#p1">#1 Two Sum</a>
+    <a class="nav-item" href="#p2">#2 Duplicate</a>
+    <a class="nav-item" href="#p3">#3 First Unique</a>
+    <a class="nav-item" href="#p4">#4 Anagrams</a>
+    <a class="nav-item" href="#p5">#5 Sliding Win</a>
+    <a class="nav-item" href="#p6">#6 Subarray K</a>
+    <a class="nav-item" href="#cheat">Cheat Sheet</a>
+  </div>
+</nav>
+
+<div class="page">
+
+<!-- ── HERO ── -->
+<header class="hero fade-in">
+  <div class="hero-kicker">// <span>JavaScript Interview Prep</span> — Two Sum Family</div>
+  <h1>6 Problems.<br><em>One</em> <strong>Pattern.</strong></h1>
+  <p class="hero-sub">
+    Master HashMap · HashSet · Sliding Window · Prefix Sum patterns.<br>
+    These 6 problems appear in virtually every JS / Frontend interview at product companies &amp; MNCs.
+  </p>
+  <div class="hero-chips">
+    <span class="chip chip-orange">🔥 Critical Tier</span>
+    <span class="chip chip-blue">Array · String</span>
+    <span class="chip chip-green">O(n) All Solutions</span>
+    <span class="chip chip-yellow">HashMap Pattern</span>
+  </div>
+</header>
+
+<!-- ── OVERVIEW ── -->
+<section class="overview fade-in">
+  <div class="section-eyebrow">// overview — all 6 problems</div>
+  <table class="overview-table">
+    <thead>
+      <tr>
+        <th>#</th><th>Problem</th><th>Pattern</th><th>DS</th><th>Time</th><th>Space</th><th>Level</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="num-cell">01</td>
+        <td class="name-cell">Two Sum</td>
+        <td class="pattern-cell">HashMap Lookup</td>
+        <td><code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan)">HashMap</code></td>
+        <td class="tc-cell">O(n)</td><td class="tc-cell" style="color:var(--purple)">O(n)</td>
+        <td><span class="tier-pill t1">🔥 Critical</span></td>
+      </tr>
+      <tr>
+        <td class="num-cell">02</td>
+        <td class="name-cell">Contains Duplicate</td>
+        <td class="pattern-cell">HashSet</td>
+        <td><code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan)">HashSet</code></td>
+        <td class="tc-cell">O(n)</td><td class="tc-cell" style="color:var(--purple)">O(n)</td>
+        <td><span class="tier-pill t1">🔥 Critical</span></td>
+      </tr>
+      <tr>
+        <td class="num-cell">03</td>
+        <td class="name-cell">First Unique Character</td>
+        <td class="pattern-cell">Frequency Counter</td>
+        <td><code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan)">HashMap</code></td>
+        <td class="tc-cell">O(n)</td><td class="tc-cell" style="color:var(--purple)">O(1)</td>
+        <td><span class="tier-pill t2">⚡ High</span></td>
+      </tr>
+      <tr>
+        <td class="num-cell">04</td>
+        <td class="name-cell">Group Anagrams</td>
+        <td class="pattern-cell">Sort + HashMap</td>
+        <td><code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan)">HashMap</code></td>
+        <td class="tc-cell">O(n·k log k)</td><td class="tc-cell" style="color:var(--purple)">O(n·k)</td>
+        <td><span class="tier-pill t1">🔥 Critical</span></td>
+      </tr>
+      <tr>
+        <td class="num-cell">05</td>
+        <td class="name-cell">Longest Substring (No Repeat)</td>
+        <td class="pattern-cell">Sliding Window</td>
+        <td><code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan)">HashMap</code></td>
+        <td class="tc-cell">O(n)</td><td class="tc-cell" style="color:var(--purple)">O(m)</td>
+        <td><span class="tier-pill t1">🔥 Critical</span></td>
+      </tr>
+      <tr>
+        <td class="num-cell">06</td>
+        <td class="name-cell">Subarray Sum Equals K</td>
+        <td class="pattern-cell">Prefix Sum + HashMap</td>
+        <td><code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan)">HashMap</code></td>
+        <td class="tc-cell">O(n)</td><td class="tc-cell" style="color:var(--purple)">O(n)</td>
+        <td><span class="tier-pill t2">⚡ High</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- PROBLEM 1 — TWO SUM -->
+<!-- ══════════════════════════════════════════════════ -->
+<article class="problem fade-in" id="p1">
+  <div class="prob-header">
+    <div class="prob-num">01</div>
+    <div class="prob-info">
+      <div class="prob-title">Two Sum</div>
+      <div class="prob-meta">
+        <span class="meta-tag"><b>Pattern:</b> HashMap Complement Lookup</span>
+        <span class="meta-tag"><b>DS:</b> Array + HashMap</span>
+        <span class="tier-pill t1">🔥 Critical — Every Interview</span>
+      </div>
+    </div>
+  </div>
+  <div class="prob-body">
+
+    <div class="prob-section">
+      <div class="prob-section-title">// problem statement</div>
+      <p class="statement">Given an array of integers <code>nums</code> and integer <code>target</code>, return the <strong>indices</strong> of the two numbers that add up to target. Each input has exactly one solution. You may not use the same element twice.</p>
+    </div>
+
+    <div class="prob-section">
+      <div class="prob-section-title">// examples</div>
+      <div class="io-grid">
+        <div class="io-box">
+          <div class="io-label">Input</div>
+          <div class="io-value">nums = [2, 7, 11, 15]<br>target = 9</div>
+        </div>
+        <div class="io-box">
+          <div class="io-label">Output</div>
+          <div class="io-value">[0, 1] <span class="io-comment">// 2+7=9</span></div>
+        </div>
+        <div class="io-box">
+          <div class="io-label">Input</div>
+          <div class="io-value">nums = [3, 2, 4]<br>target = 6</div>
+        </div>
+        <div class="io-box">
+          <div class="io-label">Output</div>
+          <div class="io-value">[1, 2] <span class="io-comment">// 2+4=6</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prob-section">
+      <div class="prob-section-title">// approach</div>
+      <div class="approach-grid">
+        <div class="approach-card bad">
+          <div class="approach-label">❌ Brute Force — Don't do this</div>
+          <div class="approach-body">Two nested loops check every pair. <strong>Mentions this, then immediately say you can do better.</strong></div>
+          <div class="approach-tc"><span class="tc">Time: O(n²)</span><span class="sc">Space: O(1)</span></div>
+        </div>
+        <div class="approach-card good">
+          <div class="approach-label">✅ HashMap — O(n)</div>
+          <div class="approach-body">For each number, look up its <strong>complement</strong> (target − current) in a map. Store what you've seen.</div>
+          <div class="approach-tc"><span class="tc">Time: O(n)</span><span class="sc">Space: O(n)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prob-section">
+      <div class="prob-section-title">// optimal solution</div>
+      <div class="code-wrap">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot cd1"></div><div class="code-dot cd2"></div><div class="code-dot cd3"></div></div>
+          <span class="code-lang">javascript</span>
+          <button class="copy-btn" onclick="copyCode(this)">copy</button>
+        </div>
+<pre><span class="cmt">// ✅ HashMap approach — O(n) time, O(n) space</span>
+<span class="kw">function</span> <span class="fn">twoSum</span>(<span class="var">nums</span>, <span class="var">target</span>) {
+  <span class="kw">const</span> <span class="var">map</span> = {};  <span class="cmt">// number → index</span>
+
+  <span class="kw">for</span> (<span class="kw">let</span> <span class="var">i</span> = <span class="num">0</span>; <span class="var">i</span> &lt; <span class="var">nums</span>.<span class="fn">length</span>; <span class="var">i</span>++) {
+    <span class="kw">const</span> <span class="var">complement</span> = <span class="var">target</span> - <span class="var">nums</span>[<span class="var">i</span>];
+
+    <span class="cmt">// If complement already seen → answer found!</span>
+    <span class="kw">if</span> (<span class="var">map</span>[<span class="var">complement</span>] !== <span class="kw">undefined</span>) {
+      <span class="kw">return</span> [<span class="var">map</span>[<span class="var">complement</span>], <span class="var">i</span>];
+    }
+
+    <span class="cmt">// Store current number with its index</span>
+    <span class="var">map</span>[<span class="var">nums</span>[<span class="var">i</span>]] = <span class="var">i</span>;
+  }
+  <span class="kw">return</span> [];
+}
+
+<span class="cmt">// Tests</span>
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">twoSum</span>([<span class="num">2</span>, <span class="num">7</span>, <span class="num">11</span>, <span class="num">15</span>], <span class="num">9</span>));  <span class="ok">// [0, 1]</span>
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">twoSum</span>([<span class="num">3</span>, <span class="num">2</span>, <span class="num">4</span>], <span class="num">6</span>));        <span class="ok">// [1, 2]</span>
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">twoSum</span>([<span class="num">3</span>, <span class="num">3</span>], <span class="num">6</span>));            <span class="ok">// [0, 1]</span></pre>
+      </div>
+    </div>
+
+    <div class="prob-section">
+      <div class="prob-section-title">// step-by-step dry run — [2,7,11,15], target=9</div>
+      <div class="dry-run">
+        <table class="dry-table">
+          <thead><tr><th>i</th><th>nums[i]</th><th>complement</th><th>map before</th><th>result</th></tr></thead>
+          <tbody>
+            <tr><td>0</td><td>2</td><td>9−2 = 7</td><td>{}</td><td class="miss">7 not found → store {2:0}</td></tr>
+            <tr><td>1</td><td>7</td><td>9−7 = 2</td><td>{2:0}</td><td class="hit">✅ 2 IS in map → return [0, 1]</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="prob-section" style="display:flex;flex-direction:column;gap:10px">
+      <div class="callout callout-warn">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-body">
+          <div class="callout-head">Common Trap</div>
+          <div class="callout-text">Use <code>map[complement] !== undefined</code> — not just <code>!map[complement]</code>. If the answer index is <code>0</code>, it's falsy and would be missed!</div>
+        </div>
+      </div>
+      <div class="callout callout-tip">
+        <div class="callout-icon">💡</div>
+        <div class="callout-body">
+          <div class="callout-head">Interview Tip</div>
+          <div class="callout-text"><strong>"Store what you've seen, look up what you need"</strong> — this is the HashMap pattern. Mentioning it by name impresses interviewers.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- PROBLEM 2 — CONTAINS DUPLICATE -->
+<!-- ══════════════════════════════════════════════════ -->
+<article class="problem fade-in" id="p2">
+  <div class="prob-header">
+    <div class="prob-num">02</div>
+    <div class="prob-info">
+      <div class="prob-title">Contains Duplicate</div>
+      <div class="prob-meta">
+        <span class="meta-tag"><b>Pattern:</b> HashSet O(1) Lookup</span>
+        <span class="meta-tag"><b>DS:</b> Array + HashSet</span>
+        <span class="tier-pill t1">🔥 Critical</span>
+      </div>
+    </div>
+  </div>
+  <div class="prob-body">
+    <div class="prob-section">
+      <div class="prob-section-title">// problem statement</div>
+      <p class="statement">Return <code>true</code> if any value appears <strong>at least twice</strong> in <code>nums</code>, or <code>false</code> if every element is distinct.</p>
+    </div>
+    <div class="prob-section">
+      <div class="prob-section-title">// examples</div>
+      <div class="io-grid">
+        <div class="io-box"><div class="io-label">Input</div><div class="io-value">nums = [1, 2, 3, 1]</div></div>
+        <div class="io-box"><div class="io-label">Output</div><div class="io-value">true <span class="io-comment">// 1 appears twice</span></div></div>
+        <div class="io-box"><div class="io-label">Input</div><div class="io-value">nums = [1, 2, 3, 4]</div></div>
+        <div class="io-box"><div class="io-label">Output</div><div class="io-value">false <span class="io-comment">// all distinct</span></div></div>
+      </div>
+    </div>
+    <div class="prob-section">
+      <div class="prob-section-title">// solution</div>
+      <div class="code-wrap">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot cd1"></div><div class="code-dot cd2"></div><div class="code-dot cd3"></div></div>
+          <span class="code-lang">javascript</span>
+          <button class="copy-btn" onclick="copyCode(this)">copy</button>
+        </div>
+<pre><span class="cmt">// ✅ HashSet — returns early on first duplicate</span>
+<span class="kw">function</span> <span class="fn">containsDuplicate</span>(<span class="var">nums</span>) {
+  <span class="kw">const</span> <span class="var">seen</span> = <span class="kw">new</span> <span class="fn">Set</span>();
+
+  <span class="kw">for</span> (<span class="kw">const</span> <span class="var">num</span> <span class="kw">of</span> <span class="var">nums</span>) {
+    <span class="kw">if</span> (<span class="var">seen</span>.<span class="fn">has</span>(<span class="var">num</span>)) <span class="kw">return</span> <span class="kw">true</span>;
+    <span class="var">seen</span>.<span class="fn">add</span>(<span class="var">num</span>);
+  }
+  <span class="kw">return</span> <span class="kw">false</span>;
+}
+
+<span class="cmt">// One-liner (less efficient — no early exit)</span>
+<span class="kw">const</span> <span class="fn">hasDup</span> = (<span class="var">nums</span>) =&gt; <span class="var">nums</span>.<span class="fn">length</span> !== <span class="kw">new</span> <span class="fn">Set</span>(<span class="var">nums</span>).<span class="fn">size</span>;
+
+<span class="cmt">// Variant: Duplicate within K distance</span>
+<span class="kw">function</span> <span class="fn">containsNearbyDuplicate</span>(<span class="var">nums</span>, <span class="var">k</span>) {
+  <span class="kw">const</span> <span class="var">map</span> = <span class="kw">new</span> <span class="fn">Map</span>(); <span class="cmt">// value → last index</span>
+  <span class="kw">for</span> (<span class="kw">let</span> <span class="var">i</span> = <span class="num">0</span>; <span class="var">i</span> &lt; <span class="var">nums</span>.<span class="fn">length</span>; <span class="var">i</span>++) {
+    <span class="kw">if</span> (<span class="var">map</span>.<span class="fn">has</span>(<span class="var">nums</span>[<span class="var">i</span>]) &amp;&amp; <span class="var">i</span> - <span class="var">map</span>.<span class="fn">get</span>(<span class="var">nums</span>[<span class="var">i</span>]) &lt;= <span class="var">k</span>)
+      <span class="kw">return</span> <span class="kw">true</span>;
+    <span class="var">map</span>.<span class="fn">set</span>(<span class="var">nums</span>[<span class="var">i</span>], <span class="var">i</span>);
+  }
+  <span class="kw">return</span> <span class="kw">false</span>;
+}</pre>
+      </div>
+    </div>
+    <div class="prob-section">
+      <div class="complexity-banner">
+        <div class="cx-item"><div class="cx-label">Time</div><div class="cx-value">O(n)</div></div>
+        <div class="cx-divider"></div>
+        <div class="cx-item"><div class="cx-label">Space</div><div class="cx-value">O(n)</div></div>
+        <div class="cx-divider"></div>
+        <div class="cx-note">The loop version returns <strong>early</strong> on first duplicate — faster in practice than the one-liner which builds the full Set first.</div>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- PROBLEM 3 — FIRST UNIQUE CHARACTER -->
+<!-- ══════════════════════════════════════════════════ -->
+<article class="problem fade-in" id="p3">
+  <div class="prob-header">
+    <div class="prob-num t2">03</div>
+    <div class="prob-info">
+      <div class="prob-title">First Unique Character in String</div>
+      <div class="prob-meta">
+        <span class="meta-tag"><b>Pattern:</b> Two-Pass Frequency Counter</span>
+        <span class="meta-tag"><b>DS:</b> String + HashMap</span>
+        <span class="tier-pill t2">⚡ High</span>
+      </div>
+    </div>
+  </div>
+  <div class="prob-body">
+    <div class="prob-section">
+      <div class="prob-section-title">// problem statement</div>
+      <p class="statement">Given string <code>s</code>, return the index of the <strong>first non-repeating character</strong>. Return <code>-1</code> if none exists.</p>
+    </div>
+    <div class="prob-section">
+      <div class="prob-section-title">// examples</div>
+      <div class="io-grid">
+        <div class="io-box"><div class="io-label">Input</div><div class="io-value">"leetcode"</div></div>
+        <div class="io-box"><div class="io-label">Output</div><div class="io-value">0 <span class="io-comment">// 'l' appears once</span></div></div>
+        <div class="io-box"><div class="io-label">Input</div><div class="io-value">"loveleetcode"</div></div>
+        <div class="io-box"><div class="io-label">Output</div><div class="io-value">2 <span class="io-comment">// 'v' is first unique</span></div></div>
+      </div>
+    </div>
+    <div class="prob-section">
+      <div class="prob-section-title">// solution — two pass</div>
+      <div class="code-wrap">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot cd1"></div><div class="code-dot cd2"></div><div class="code-dot cd3"></div></div>
+          <span class="code-lang">javascript</span>
+          <button class="copy-btn" onclick="copyCode(this)">copy</button>
+        </div>
+<pre><span class="kw">function</span> <span class="fn">firstUniqChar</span>(<span class="var">s</span>) {
+  <span class="kw">const</span> <span class="var">freq</span> = {};
+
+  <span class="cmt">// Pass 1: count each character</span>
+  <span class="kw">for</span> (<span class="kw">const</span> <span class="var">char</span> <span class="kw">of</span> <span class="var">s</span>) {
+    <span class="var">freq</span>[<span class="var">char</span>] = (<span class="var">freq</span>[<span class="var">char</span>] || <span class="num">0</span>) + <span class="num">1</span>;
+  }
+
+  <span class="cmt">// Pass 2: find first character with count = 1</span>
+  <span class="kw">for</span> (<span class="kw">let</span> <span class="var">i</span> = <span class="num">0</span>; <span class="var">i</span> &lt; <span class="var">s</span>.<span class="fn">length</span>; <span class="var">i</span>++) {
+    <span class="kw">if</span> (<span class="var">freq</span>[<span class="var">s</span>[<span class="var">i</span>]] === <span class="num">1</span>) <span class="kw">return</span> <span class="var">i</span>;
+  }
+
+  <span class="kw">return</span> -<span class="num">1</span>;
+}
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">firstUniqChar</span>(<span class="str">'leetcode'</span>));      <span class="ok">// 0</span>
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">firstUniqChar</span>(<span class="str">'loveleetcode'</span>));  <span class="ok">// 2</span>
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">firstUniqChar</span>(<span class="str">'aabb'</span>));          <span class="ok">// -1</span></pre>
+      </div>
+    </div>
+    <div class="prob-section">
+      <div class="complexity-banner">
+        <div class="cx-item"><div class="cx-label">Time</div><div class="cx-value">O(n)</div></div>
+        <div class="cx-divider"></div>
+        <div class="cx-item"><div class="cx-label">Space</div><div class="cx-value">O(1)</div></div>
+        <div class="cx-divider"></div>
+        <div class="cx-note"><strong>O(1) space</strong> because there are only 26 lowercase letters. The frequency map caps at 26 entries — constant regardless of string length.</div>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- PROBLEM 4 — GROUP ANAGRAMS -->
+<!-- ══════════════════════════════════════════════════ -->
+<article class="problem fade-in" id="p4">
+  <div class="prob-header">
+    <div class="prob-num">04</div>
+    <div class="prob-info">
+      <div class="prob-title">Group Anagrams</div>
+      <div class="prob-meta">
+        <span class="meta-tag"><b>Pattern:</b> Sort → HashMap Key</span>
+        <span class="meta-tag"><b>DS:</b> Array + HashMap</span>
+        <span class="tier-pill t1">🔥 Critical — Very Important</span>
+      </div>
+    </div>
+  </div>
+  <div class="prob-body">
+    <div class="prob-section">
+      <div class="prob-section-title">// problem statement</div>
+      <p class="statement">Given an array of strings, group all <strong>anagrams</strong> together. An anagram uses all the original letters exactly once in a different order.</p>
+    </div>
+    <div class="prob-section">
+      <div class="prob-section-title">// examples</div>
+      <div class="io-grid">
+        <div class="io-box"><div class="io-label">Input</div><div class="io-value">["eat","tea","tan",<br>"ate","nat","bat"]</div></div>
+        <div class="io-box"><div class="io-label">Output</div><div class="io-value">[["eat","tea","ate"],<br>["tan","nat"],["bat"]]</div></div>
+      </div>
+    </div>
+    <div class="prob-section">
+      <div class="prob-section-title">// key insight</div>
+      <div class="callout callout-note">
+        <div class="callout-icon">🧠</div>
+        <div class="callout-body">
+          <div class="callout-head">The Insight</div>
+          <div class="callout-text">Anagrams share the same <strong>sorted character string</strong>. <code>"eat"</code>, <code>"tea"</code>, <code>"ate"</code> all sort to <code>"aet"</code>. Use that as the HashMap key.</div>
+        </div>
+      </div>
+    </div>
+    <div class="prob-section">
+      <div class="prob-section-title">// solution</div>
+      <div class="code-wrap">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot cd1"></div><div class="code-dot cd2"></div><div class="code-dot cd3"></div></div>
+          <span class="code-lang">javascript</span>
+          <button class="copy-btn" onclick="copyCode(this)">copy</button>
+        </div>
+<pre><span class="cmt">// ✅ Sort-based key — clean and readable</span>
+<span class="kw">function</span> <span class="fn">groupAnagrams</span>(<span class="var">strs</span>) {
+  <span class="kw">const</span> <span class="var">map</span> = {};
+
+  <span class="kw">for</span> (<span class="kw">const</span> <span class="var">word</span> <span class="kw">of</span> <span class="var">strs</span>) {
+    <span class="cmt">// "eat" → split → ['e','a','t'] → sort → ['a','e','t'] → "aet"</span>
+    <span class="kw">const</span> <span class="var">key</span> = <span class="var">word</span>.<span class="fn">split</span>(<span class="str">''</span>).<span class="fn">sort</span>().<span class="fn">join</span>(<span class="str">''</span>);
+    <span class="kw">if</span> (!<span class="var">map</span>[<span class="var">key</span>]) <span class="var">map</span>[<span class="var">key</span>] = [];
+    <span class="var">map</span>[<span class="var">key</span>].<span class="fn">push</span>(<span class="var">word</span>);
+  }
+
+  <span class="kw">return</span> <span class="fn">Object</span>.<span class="fn">values</span>(<span class="var">map</span>);
+}
+
+<span class="cmt">// ✅ Frequency array key — O(k) per word instead of O(k log k)</span>
+<span class="kw">function</span> <span class="fn">groupAnagramsFast</span>(<span class="var">strs</span>) {
+  <span class="kw">const</span> <span class="var">map</span> = <span class="kw">new</span> <span class="fn">Map</span>();
+  <span class="kw">for</span> (<span class="kw">const</span> <span class="var">word</span> <span class="kw">of</span> <span class="var">strs</span>) {
+    <span class="kw">const</span> <span class="var">freq</span> = <span class="kw">new</span> <span class="fn">Array</span>(<span class="num">26</span>).<span class="fn">fill</span>(<span class="num">0</span>);
+    <span class="kw">for</span> (<span class="kw">const</span> <span class="var">c</span> <span class="kw">of</span> <span class="var">word</span>) <span class="var">freq</span>[<span class="var">c</span>.<span class="fn">charCodeAt</span>(<span class="num">0</span>) - <span class="num">97</span>]++;
+    <span class="kw">const</span> <span class="var">key</span> = <span class="var">freq</span>.<span class="fn">join</span>(<span class="str">'#'</span>); <span class="cmt">// "1#0#0...1#0#0..."</span>
+    <span class="kw">if</span> (!<span class="var">map</span>.<span class="fn">has</span>(<span class="var">key</span>)) <span class="var">map</span>.<span class="fn">set</span>(<span class="var">key</span>, []);
+    <span class="var">map</span>.<span class="fn">get</span>(<span class="var">key</span>).<span class="fn">push</span>(<span class="var">word</span>);
+  }
+  <span class="kw">return</span> [...<span class="var">map</span>.<span class="fn">values</span>()];
+}
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">groupAnagrams</span>([<span class="str">'eat'</span>,<span class="str">'tea'</span>,<span class="str">'tan'</span>,<span class="str">'ate'</span>,<span class="str">'nat'</span>,<span class="str">'bat'</span>]));
+<span class="cmt">// [['eat','tea','ate'], ['tan','nat'], ['bat']]</span></pre>
+      </div>
+    </div>
+    <div class="prob-section">
+      <div class="complexity-banner">
+        <div class="cx-item"><div class="cx-label">Sort Key</div><div class="cx-value">O(n·k log k)</div></div>
+        <div class="cx-divider"></div>
+        <div class="cx-item"><div class="cx-label">Freq Key</div><div class="cx-value">O(n·k)</div></div>
+        <div class="cx-divider"></div>
+        <div class="cx-note">Mentioning the <strong>frequency array key</strong> as an optimization earns extra credit in senior interviews. Both solutions are accepted.</div>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- PROBLEM 5 — LONGEST SUBSTRING -->
+<!-- ══════════════════════════════════════════════════ -->
+<article class="problem fade-in" id="p5">
+  <div class="prob-header">
+    <div class="prob-num">05</div>
+    <div class="prob-info">
+      <div class="prob-title">Longest Substring Without Repeating Characters</div>
+      <div class="prob-meta">
+        <span class="meta-tag"><b>Pattern:</b> Sliding Window + HashMap</span>
+        <span class="meta-tag"><b>DS:</b> String</span>
+        <span class="tier-pill t1">🔥 Critical — Frontend Favourite</span>
+      </div>
+    </div>
+  </div>
+  <div class="prob-body">
+    <div class="prob-section">
+      <div class="prob-section-title">// problem statement</div>
+      <p class="statement">Find the length of the <strong>longest substring</strong> without repeating characters.</p>
+    </div>
+    <div class="prob-section">
+      <div class="prob-section-title">// examples</div>
+      <div class="io-grid">
+        <div class="io-box"><div class="io-label">Input</div><div class="io-value">"abcabcbb"</div></div>
+        <div class="io-box"><div class="io-label">Output</div><div class="io-value">3 <span class="io-comment">// "abc"</span></div></div>
+        <div class="io-box"><div class="io-label">Input</div><div class="io-value">"bbbbb"</div></div>
+        <div class="io-box"><div class="io-label">Output</div><div class="io-value">1 <span class="io-comment">// "b"</span></div></div>
+        <div class="io-box"><div class="io-label">Input</div><div class="io-value">"pwwkew"</div></div>
+        <div class="io-box"><div class="io-label">Output</div><div class="io-value">3 <span class="io-comment">// "wke"</span></div></div>
+      </div>
+    </div>
+    <div class="prob-section">
+      <div class="prob-section-title">// solution — sliding window</div>
+      <div class="code-wrap">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot cd1"></div><div class="code-dot cd2"></div><div class="code-dot cd3"></div></div>
+          <span class="code-lang">javascript</span>
+          <button class="copy-btn" onclick="copyCode(this)">copy</button>
+        </div>
+<pre><span class="kw">function</span> <span class="fn">lengthOfLongestSubstring</span>(<span class="var">s</span>) {
+  <span class="kw">let</span> <span class="var">left</span> = <span class="num">0</span>;
+  <span class="kw">let</span> <span class="var">max</span> = <span class="num">0</span>;
+  <span class="kw">const</span> <span class="var">map</span> = {};  <span class="cmt">// char → last seen index</span>
+
+  <span class="kw">for</span> (<span class="kw">let</span> <span class="var">right</span> = <span class="num">0</span>; <span class="var">right</span> &lt; <span class="var">s</span>.<span class="fn">length</span>; <span class="var">right</span>++) {
+    <span class="kw">const</span> <span class="var">char</span> = <span class="var">s</span>[<span class="var">right</span>];
+
+    <span class="cmt">// char is inside current window → shrink from left</span>
+    <span class="kw">if</span> (<span class="var">map</span>[<span class="var">char</span>] >= <span class="var">left</span>) {
+      <span class="var">left</span> = <span class="var">map</span>[<span class="var">char</span>] + <span class="num">1</span>;
+    }
+
+    <span class="var">map</span>[<span class="var">char</span>] = <span class="var">right</span>;  <span class="cmt">// update last seen</span>
+    <span class="var">max</span> = <span class="fn">Math</span>.<span class="fn">max</span>(<span class="var">max</span>, <span class="var">right</span> - <span class="var">left</span> + <span class="num">1</span>);
+  }
+
+  <span class="kw">return</span> <span class="var">max</span>;
+}
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">lengthOfLongestSubstring</span>(<span class="str">'abcabcbb'</span>));  <span class="ok">// 3</span>
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">lengthOfLongestSubstring</span>(<span class="str">'pwwkew'</span>));    <span class="ok">// 3</span></pre>
+      </div>
+    </div>
+    <div class="prob-section">
+      <div class="prob-section-title">// visual trace — "abcabcbb"</div>
+      <div class="dry-run">
+        <table class="dry-table">
+          <thead><tr><th>right</th><th>char</th><th>window</th><th>left</th><th>max</th></tr></thead>
+          <tbody>
+            <tr><td>0</td><td>a</td><td>[a]</td><td>0</td><td>1</td></tr>
+            <tr><td>1</td><td>b</td><td>[ab]</td><td>0</td><td>2</td></tr>
+            <tr><td>2</td><td>c</td><td>[abc]</td><td>0</td><td>3</td></tr>
+            <tr><td>3</td><td>a</td><td class="hit">jump left → [bca]</td><td>1</td><td>3</td></tr>
+            <tr><td>4</td><td>b</td><td class="hit">jump left → [cab]</td><td>2</td><td>3</td></tr>
+            <tr><td>5</td><td>c</td><td class="hit">jump left → [abc]</td><td>3</td><td>3</td></tr>
+            <tr><td>6</td><td>b</td><td class="hit">jump left → [cb]</td><td>5</td><td>3</td></tr>
+            <tr><td>7</td><td>b</td><td class="hit">jump left → [b]</td><td>7</td><td class="miss">3 stays</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="prob-section" style="display:flex;flex-direction:column;gap:10px">
+      <div class="complexity-banner">
+        <div class="cx-item"><div class="cx-label">Time</div><div class="cx-value">O(n)</div></div>
+        <div class="cx-divider"></div>
+        <div class="cx-item"><div class="cx-label">Space</div><div class="cx-value">O(min(m,n))</div></div>
+        <div class="cx-divider"></div>
+        <div class="cx-note">m = charset size. For lowercase English: O(26) = O(1). For Unicode: O(n).</div>
+      </div>
+      <div class="callout callout-warn">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-body">
+          <div class="callout-head">Critical Trap</div>
+          <div class="callout-text">Must check <code>map[char] &gt;= left</code> — NOT just <code>map[char]</code>. Without <code>&gt;= left</code>, you might jump <code>left</code> backwards to before the current window!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- PROBLEM 6 — SUBARRAY SUM = K -->
+<!-- ══════════════════════════════════════════════════ -->
+<article class="problem fade-in" id="p6">
+  <div class="prob-header">
+    <div class="prob-num t2">06</div>
+    <div class="prob-info">
+      <div class="prob-title">Subarray Sum Equals K</div>
+      <div class="prob-meta">
+        <span class="meta-tag"><b>Pattern:</b> Prefix Sum + HashMap</span>
+        <span class="meta-tag"><b>DS:</b> Array + HashMap</span>
+        <span class="tier-pill t2">⚡ High — Advanced Level</span>
+      </div>
+    </div>
+  </div>
+  <div class="prob-body">
+    <div class="prob-section">
+      <div class="prob-section-title">// problem statement</div>
+      <p class="statement">Return the <strong>total number of subarrays</strong> whose sum equals <code>k</code>. Works with negative numbers!</p>
+    </div>
+    <div class="prob-section">
+      <div class="prob-section-title">// examples</div>
+      <div class="io-grid">
+        <div class="io-box"><div class="io-label">Input</div><div class="io-value">nums = [1, 1, 1], k = 2</div></div>
+        <div class="io-box"><div class="io-label">Output</div><div class="io-value">2 <span class="io-comment">// [1,1]×2</span></div></div>
+        <div class="io-box"><div class="io-label">Input</div><div class="io-value">nums = [1, 2, 3], k = 3</div></div>
+        <div class="io-box"><div class="io-label">Output</div><div class="io-value">2 <span class="io-comment">// [1,2] and [3]</span></div></div>
+      </div>
+    </div>
+    <div class="prob-section">
+      <div class="prob-section-title">// key insight</div>
+      <div class="callout callout-note">
+        <div class="callout-icon">🧠</div>
+        <div class="callout-body">
+          <div class="callout-head">The Insight</div>
+          <div class="callout-text">Sum of <strong>nums[i..j]</strong> = <strong>prefix[j+1] − prefix[i]</strong>. We want this = k, so we need <strong>prefix[j+1] − k</strong> to have appeared earlier. Track prefix sum frequencies in a HashMap.</div>
+        </div>
+      </div>
+    </div>
+    <div class="prob-section">
+      <div class="prob-section-title">// solution</div>
+      <div class="code-wrap">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot cd1"></div><div class="code-dot cd2"></div><div class="code-dot cd3"></div></div>
+          <span class="code-lang">javascript</span>
+          <button class="copy-btn" onclick="copyCode(this)">copy</button>
+        </div>
+<pre><span class="kw">function</span> <span class="fn">subarraySum</span>(<span class="var">nums</span>, <span class="var">k</span>) {
+  <span class="kw">const</span> <span class="var">prefixCount</span> = { <span class="num">0</span>: <span class="num">1</span> };  <span class="cmt">// ← CRITICAL: handles subarrays starting at index 0</span>
+  <span class="kw">let</span> <span class="var">runningSum</span> = <span class="num">0</span>;
+  <span class="kw">let</span> <span class="var">count</span> = <span class="num">0</span>;
+
+  <span class="kw">for</span> (<span class="kw">const</span> <span class="var">num</span> <span class="kw">of</span> <span class="var">nums</span>) {
+    <span class="var">runningSum</span> += <span class="var">num</span>;
+
+    <span class="cmt">// Have we seen (runningSum - k) before?</span>
+    <span class="cmt">// If yes → a subarray ending here has sum = k</span>
+    <span class="kw">const</span> <span class="var">needed</span> = <span class="var">runningSum</span> - <span class="var">k</span>;
+    <span class="kw">if</span> (<span class="var">prefixCount</span>[<span class="var">needed</span>]) {
+      <span class="var">count</span> += <span class="var">prefixCount</span>[<span class="var">needed</span>];
+    }
+
+    <span class="var">prefixCount</span>[<span class="var">runningSum</span>] = (<span class="var">prefixCount</span>[<span class="var">runningSum</span>] || <span class="num">0</span>) + <span class="num">1</span>;
+  }
+
+  <span class="kw">return</span> <span class="var">count</span>;
+}
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">subarraySum</span>([<span class="num">1</span>,<span class="num">1</span>,<span class="num">1</span>], <span class="num">2</span>));   <span class="ok">// 2</span>
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">subarraySum</span>([<span class="num">1</span>,<span class="num">2</span>,<span class="num">3</span>], <span class="num">3</span>));   <span class="ok">// 2</span>
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">subarraySum</span>([<span class="num">1</span>,-<span class="num">1</span>,<span class="num">1</span>], <span class="num">0</span>));  <span class="ok">// 3  ← handles negatives!</span></pre>
+      </div>
+    </div>
+    <div class="prob-section">
+      <div class="prob-section-title">// step-by-step dry run — [1,1,1], k=2</div>
+      <div class="dry-run">
+        <table class="dry-table">
+          <thead><tr><th>num</th><th>runningSum</th><th>needed (sum−k)</th><th>found?</th><th>count</th><th>prefixCount</th></tr></thead>
+          <tbody>
+            <tr><td>—</td><td>0</td><td>—</td><td>—</td><td>0</td><td>{0:1} ← init</td></tr>
+            <tr><td>1</td><td>1</td><td>1−2 = −1</td><td class="miss">No</td><td>0</td><td>{0:1, 1:1}</td></tr>
+            <tr><td>1</td><td>2</td><td>2−2 = 0</td><td class="hit">✅ Yes! (1×)</td><td>1</td><td>{0:1, 1:1, 2:1}</td></tr>
+            <tr><td>1</td><td>3</td><td>3−2 = 1</td><td class="hit">✅ Yes! (1×)</td><td>2</td><td>{0:1, 1:1, 2:1, 3:1}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="prob-section" style="display:flex;flex-direction:column;gap:10px">
+      <div class="complexity-banner">
+        <div class="cx-item"><div class="cx-label">Time</div><div class="cx-value">O(n)</div></div>
+        <div class="cx-divider"></div>
+        <div class="cx-item"><div class="cx-label">Space</div><div class="cx-value">O(n)</div></div>
+        <div class="cx-divider"></div>
+        <div class="cx-note"><strong>Handles negatives!</strong> Sliding window only works for positive arrays. This prefix sum approach works universally.</div>
+      </div>
+      <div class="callout callout-warn">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-body">
+          <div class="callout-head">Don't Forget</div>
+          <div class="callout-text">Initialize <code>prefixCount = &#123; 0: 1 &#125;</code>. Without this, subarrays that start from index 0 (where the prefix sum itself equals k) won't be counted.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- CHEAT SHEET -->
+<!-- ══════════════════════════════════════════════════ -->
+<section class="cheatsheet fade-in" id="cheat">
+  <div class="cheat-header">
+    <div class="cheat-title">Quick Reference Cheat Sheet</div>
+    <div class="cheat-sub">// Pattern recognition — what to reach for and when</div>
+  </div>
+  <table class="pattern-table">
+    <thead>
+      <tr><th>If you see...</th><th>Reach for...</th><th>Example Problems</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="pattern-when">Two elements summing to target</span></td>
+        <td><span class="pattern-use">HashMap — store complement</span></td>
+        <td><span class="pattern-probs">Two Sum, Four Sum</span></td>
+      </tr>
+      <tr>
+        <td><span class="pattern-when">Any element appears twice?</span></td>
+        <td><span class="pattern-use">HashSet — O(1) lookup</span></td>
+        <td><span class="pattern-probs">Contains Duplicate</span></td>
+      </tr>
+      <tr>
+        <td><span class="pattern-when">Count or group chars / elements</span></td>
+        <td><span class="pattern-use">Frequency Counter HashMap</span></td>
+        <td><span class="pattern-probs">First Unique Char, Group Anagrams</span></td>
+      </tr>
+      <tr>
+        <td><span class="pattern-when">Longest/smallest window in string</span></td>
+        <td><span class="pattern-use">Sliding Window + HashMap</span></td>
+        <td><span class="pattern-probs">Longest Substring, Min Window</span></td>
+      </tr>
+      <tr>
+        <td><span class="pattern-when">Count subarrays with sum = k</span></td>
+        <td><span class="pattern-use">Prefix Sum + HashMap</span></td>
+        <td><span class="pattern-probs">Subarray Sum = K, Pivot Index</span></td>
+      </tr>
+      <tr>
+        <td><span class="pattern-when">Group strings by canonical form</span></td>
+        <td><span class="pattern-use">Sort/encode → HashMap key</span></td>
+        <td><span class="pattern-probs">Group Anagrams, Isomorphic Strings</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="padding:20px 24px;border-top:1px solid var(--border);">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.15em;color:var(--orange);text-transform:uppercase;margin-bottom:16px;">// 5 golden interview rules</div>
+    <div class="rules-grid">
+      <div class="rule-card">
+        <div class="rule-num">1</div>
+        <div>
+          <div class="rule-text">State brute force first, then optimize</div>
+          <div class="rule-why">Shows structured, systematic thinking</div>
+        </div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-num">2</div>
+        <div>
+          <div class="rule-text">Name the pattern — say "complement lookup"</div>
+          <div class="rule-why">Shows DSA vocabulary mastery</div>
+        </div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-num">3</div>
+        <div>
+          <div class="rule-text">Walk through an example before coding</div>
+          <div class="rule-why">Catches edge cases early, impresses interviewers</div>
+        </div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-num">4</div>
+        <div>
+          <div class="rule-text">State Time &amp; Space complexity upfront</div>
+          <div class="rule-why">Shows awareness without being asked</div>
+        </div>
+      </div>
+      <div class="rule-card" style="grid-column:1/-1">
+        <div class="rule-num">5</div>
+        <div>
+          <div class="rule-text">Test edge cases: empty array, single element, all same values, negatives</div>
+          <div class="rule-why">This alone separates senior candidates from junior ones</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-strip fade-in">
+  <div class="cta-text">Master the pattern, not just the problem.</div>
+  <div class="cta-sub">
+    Two Sum · Contains Duplicate · First Unique Char · Group Anagrams · Longest Substring · Subarray Sum K<br>
+    <span style="color:var(--orange)">One HashMap pattern → 200+ interview problems solved.</span>
+  </div>
+</div>
+
+</div><!-- /page -->
+
+<script>
+// ── READ PROGRESS BAR ──
+window.addEventListener('scroll', () => {
+  const el = document.documentElement;
+  const pct = el.scrollTop / (el.scrollHeight - el.clientHeight) * 100;
+  document.getElementById('readBar').style.width = pct + '%';
+});
+
+// ── SCROLL FADE-IN ──
+const observer = new IntersectionObserver(
+  entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }),
+  { threshold: 0.08 }
+);
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// ── ACTIVE NAV ──
+const sections = document.querySelectorAll('[id]');
+const navItems = document.querySelectorAll('.nav-item');
+const navObserver = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navItems.forEach(n => n.classList.remove('active'));
+      const active = document.querySelector(`.nav-item[href="#${e.target.id}"]`);
+      if (active) active.classList.add('active');
+    }
+  });
+}, { threshold: 0.4 });
+sections.forEach(s => navObserver.observe(s));
+
+// ── COPY CODE ──
+function copyCode(btn) {
+  const pre = btn.closest('.code-wrap').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+</script>
+</body>
+</html>

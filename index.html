@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSA Interview Topics — JavaScript Developer</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --card: #16161f;
+    --border: #1e1e2e;
+    --text: #e2e2f0;
+    --muted: #6b6b8a;
+    --dim: #2a2a3e;
+
+    --tier1: #ff6b35;
+    --tier2: #ffd166;
+    --tier3: #06d6a0;
+    --tier4: #4cc9f0;
+    --tier5: #9b8aff;
+
+    --tier1-bg: rgba(255,107,53,0.08);
+    --tier2-bg: rgba(255,209,102,0.08);
+    --tier3-bg: rgba(6,214,160,0.08);
+    --tier4-bg: rgba(76,201,240,0.08);
+    --tier5-bg: rgba(155,138,255,0.08);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── GRID NOISE BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,107,53,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,107,53,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── GLOW ORBS ── */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.18;
+  }
+  .orb1 { width: 500px; height: 500px; background: #ff6b35; top: -100px; left: -100px; }
+  .orb2 { width: 400px; height: 400px; background: #9b8aff; bottom: 0; right: -50px; }
+  .orb3 { width: 300px; height: 300px; background: #06d6a0; top: 40%; left: 40%; }
+
+  /* ── WRAPPER ── */
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    margin-bottom: 56px;
+    text-align: center;
+  }
+
+  .eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--tier1);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    opacity: 0.9;
+  }
+
+  h1 {
+    font-size: clamp(36px, 6vw, 64px);
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -0.03em;
+    margin-bottom: 20px;
+  }
+  h1 .accent { color: var(--tier1); }
+  h1 .js { color: var(--tier2); }
+
+  .header-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    max-width: 480px;
+    margin: 0 auto 32px;
+    line-height: 1.7;
+  }
+
+  /* ── LEGEND ── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 48px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 4px;
+  }
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── FILTER TABS ── */
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 40px;
+    justify-content: center;
+  }
+  .filter-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .filter-btn:hover { border-color: var(--tier1); color: var(--text); }
+  .filter-btn.active {
+    background: var(--tier1);
+    border-color: var(--tier1);
+    color: #fff;
+  }
+  .filter-btn[data-tier="2"].active { background: var(--tier2); border-color: var(--tier2); color: #000; }
+  .filter-btn[data-tier="3"].active { background: var(--tier3); border-color: var(--tier3); color: #000; }
+  .filter-btn[data-tier="4"].active { background: var(--tier4); border-color: var(--tier4); color: #000; }
+  .filter-btn[data-tier="5"].active { background: var(--tier5); border-color: var(--tier5); color: #fff; }
+
+  /* ── PROGRESS STRIP ── */
+  .progress-strip {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    margin-bottom: 48px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 20px;
+    border-radius: 8px;
+  }
+  .progress-col { text-align: center; }
+  .progress-bar-wrap {
+    height: 6px;
+    background: var(--dim);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .progress-bar { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+  .progress-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .progress-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    display: block;
+  }
+
+  /* ── SECTION HEADERS ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 48px 0 20px;
+  }
+  .section-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--dim);
+    padding: 3px 8px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .section-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── TOPIC GRID ── */
+  .topic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 10px;
+  }
+
+  /* ── TOPIC CARD ── */
+  .topic-card {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+  }
+  .topic-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 6px 0 0 6px;
+  }
+  .topic-card[data-tier="1"]::before { background: var(--tier1); }
+  .topic-card[data-tier="2"]::before { background: var(--tier2); }
+  .topic-card[data-tier="3"]::before { background: var(--tier3); }
+  .topic-card[data-tier="4"]::before { background: var(--tier4); }
+  .topic-card[data-tier="5"]::before { background: var(--tier5); }
+
+  .topic-card:hover {
+    border-color: var(--dim);
+    transform: translateY(-2px);
+  }
+  .topic-card[data-tier="1"]:hover { border-color: rgba(255,107,53,0.3); background: var(--tier1-bg); }
+  .topic-card[data-tier="2"]:hover { border-color: rgba(255,209,102,0.3); background: var(--tier2-bg); }
+  .topic-card[data-tier="3"]:hover { border-color: rgba(6,214,160,0.3); background: var(--tier3-bg); }
+  .topic-card[data-tier="4"]:hover { border-color: rgba(76,201,240,0.3); background: var(--tier4-bg); }
+  .topic-card[data-tier="5"]:hover { border-color: rgba(155,138,255,0.3); background: var(--tier5-bg); }
+
+  .topic-card.checked {
+    opacity: 0.45;
+  }
+  .topic-card.checked .checkmark { opacity: 1; }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .topic-name {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    flex: 1;
+  }
+
+  .checkmark {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid var(--dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: all 0.2s;
+    font-size: 10px;
+  }
+  .topic-card:hover .checkmark { opacity: 0.5; }
+  .topic-card.checked .checkmark {
+    background: var(--tier3);
+    border-color: var(--tier3);
+    color: #000;
+    opacity: 1;
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+  }
+  .tag-freq {
+    color: var(--tier2);
+    border-color: rgba(255,209,102,0.2);
+    background: rgba(255,209,102,0.05);
+  }
+  .tag-type {
+    color: var(--muted);
+    border-color: var(--border);
+  }
+  .tag-ds {
+    color: var(--tier4);
+    border-color: rgba(76,201,240,0.2);
+    background: rgba(76,201,240,0.05);
+  }
+
+  .tier-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: auto;
+  }
+  [data-tier="1"] .tier-badge { background: rgba(255,107,53,0.15); color: var(--tier1); }
+  [data-tier="2"] .tier-badge { background: rgba(255,209,102,0.15); color: var(--tier2); }
+  [data-tier="3"] .tier-badge { background: rgba(6,214,160,0.15); color: var(--tier3); }
+  [data-tier="4"] .tier-badge { background: rgba(76,201,240,0.15); color: var(--tier4); }
+  [data-tier="5"] .tier-badge { background: rgba(155,138,255,0.15); color: var(--tier5); }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    position: sticky;
+    bottom: 20px;
+    margin-top: 60px;
+    background: rgba(17,17,24,0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .stat strong {
+    color: var(--text);
+    font-size: 16px;
+  }
+  .stat-divider { width: 1px; height: 20px; background: var(--border); }
+
+  .reset-btn {
+    margin-left: auto;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 8px 14px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .reset-btn:hover { border-color: var(--tier1); color: var(--tier1); }
+
+  /* ── HIDDEN ── */
+  .topic-card.hidden { display: none; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .topic-card { animation: fadeUp 0.4s ease both; }
+
+  /* ── SECTION HIDDEN ── */
+  .section-block.all-hidden .section-header { display: none; }
+</style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <header>
+    <div class="eyebrow">// Interview Prep Roadmap</div>
+    <h1>DSA Topics for<br><span class="js">JavaScript</span> <span class="accent">Developers</span></h1>
+    <p class="header-sub">Curated by interviewer frequency. Click any card to mark it done. Filter by priority tier.</p>
+  </header>
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <div class="legend-item"><span class="legend-dot" style="background:var(--tier1)"></span>CRITICAL — Always Asked</div>
+    <div class="legend-item"><span class="legend-dot" style="background:var(--tier2)"></span>HIGH — Very Frequently Asked</div>
+    <div class="legend-item"><span class="legend-dot" style="background:var(--tier3)"></span>MEDIUM — Commonly Asked</div>
+    <div class="legend-item"><span class="legend-dot" style="background:var(--tier4)"></span>ADVANCED — Senior Roles</div>
+    <div class="legend-item"><span class="legend-dot" style="background:var(--tier5)"></span>BONUS — Stand Out</div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <button class="filter-btn active" data-tier="all" onclick="filterTier('all', this)">ALL TOPICS</button>
+    <button class="filter-btn" data-tier="1" onclick="filterTier('1', this)">🔥 CRITICAL</button>
+    <button class="filter-btn" data-tier="2" onclick="filterTier('2', this)">⚡ HIGH</button>
+    <button class="filter-btn" data-tier="3" onclick="filterTier('3', this)">🟢 MEDIUM</button>
+    <button class="filter-btn" data-tier="4" onclick="filterTier('4', this)">🔵 ADVANCED</button>
+    <button class="filter-btn" data-tier="5" onclick="filterTier('5', this)">💜 BONUS</button>
+  </div>
+
+  <!-- PROGRESS STRIP -->
+  <div class="progress-strip" id="progressStrip">
+    <div class="progress-col">
+      <div class="progress-bar-wrap"><div class="progress-bar" id="pb1" style="background:var(--tier1);width:0%"></div></div>
+      <span class="progress-num" id="pn1" style="color:var(--tier1)">0</span>
+      <div class="progress-label">Critical</div>
+    </div>
+    <div class="progress-col">
+      <div class="progress-bar-wrap"><div class="progress-bar" id="pb2" style="background:var(--tier2);width:0%"></div></div>
+      <span class="progress-num" id="pn2" style="color:var(--tier2)">0</span>
+      <div class="progress-label">High</div>
+    </div>
+    <div class="progress-col">
+      <div class="progress-bar-wrap"><div class="progress-bar" id="pb3" style="background:var(--tier3);width:0%"></div></div>
+      <span class="progress-num" id="pn3" style="color:var(--tier3)">0</span>
+      <div class="progress-label">Medium</div>
+    </div>
+    <div class="progress-col">
+      <div class="progress-bar-wrap"><div class="progress-bar" id="pb4" style="background:var(--tier4);width:0%"></div></div>
+      <span class="progress-num" id="pn4" style="color:var(--tier4)">0</span>
+      <div class="progress-label">Advanced</div>
+    </div>
+    <div class="progress-col">
+      <div class="progress-bar-wrap"><div class="progress-bar" id="pb5" style="background:var(--tier5);width:0%"></div></div>
+      <span class="progress-num" id="pn5" style="color:var(--tier5)">0</span>
+      <div class="progress-label">Bonus</div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content"></div>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar">
+    <div class="stat"><strong id="doneCount">0</strong> done</div>
+    <div class="stat-divider"></div>
+    <div class="stat"><strong id="totalCount">0</strong> total</div>
+    <div class="stat-divider"></div>
+    <div class="stat"><strong id="pctCount">0%</strong> complete</div>
+    <button class="reset-btn" onclick="resetAll()">RESET ALL</button>
+  </div>
+
+</div>
+
+<script>
+const DATA = [
+  {
+    section: "Arrays & Two Pointer",
+    topics: [
+      { name: "Two Sum", tier: 1, freq: "Every Interview", type: "HashMap", ds: "Array" },
+      { name: "Two Sum — Sorted Array (Two Pointer)", tier: 1, freq: "Very High", type: "Two Pointer", ds: "Array" },
+      { name: "Three Sum", tier: 1, freq: "Very High", type: "Two Pointer", ds: "Array" },
+      { name: "Move Zeroes", tier: 1, freq: "High", type: "Two Pointer", ds: "Array" },
+      { name: "Best Time to Buy & Sell Stock", tier: 1, freq: "Very High", type: "Greedy", ds: "Array" },
+      { name: "Product of Array Except Self", tier: 1, freq: "High", type: "Prefix Sum", ds: "Array" },
+      { name: "Maximum Subarray — Kadane's", tier: 1, freq: "Very High", type: "DP / Sliding", ds: "Array" },
+      { name: "Contains Duplicate", tier: 1, freq: "High", type: "HashSet", ds: "Array" },
+      { name: "Rotate Array", tier: 2, freq: "Medium", type: "Two Pointer", ds: "Array" },
+      { name: "Find Missing Number", tier: 2, freq: "Medium", type: "Math / XOR", ds: "Array" },
+      { name: "Majority Element (Boyer-Moore)", tier: 2, freq: "Medium", type: "Voting", ds: "Array" },
+      { name: "Four Sum", tier: 3, freq: "Low-Medium", type: "Two Pointer", ds: "Array" },
+      { name: "Find Duplicate Number", tier: 2, freq: "Medium", type: "Floyd's Cycle", ds: "Array" },
+      { name: "Sort Colors (Dutch Flag)", tier: 2, freq: "Medium", type: "Three Pointer", ds: "Array" },
+    ]
+  },
+  {
+    section: "Sliding Window",
+    topics: [
+      { name: "Longest Substring Without Repeating Characters", tier: 1, freq: "Every Interview", type: "Sliding Window", ds: "String" },
+      { name: "Minimum Window Substring", tier: 2, freq: "High", type: "Sliding Window", ds: "String" },
+      { name: "Longest Repeating Character Replacement", tier: 2, freq: "Medium-High", type: "Sliding Window", ds: "String" },
+      { name: "Permutation in String", tier: 2, freq: "Medium", type: "Sliding Window", ds: "String" },
+      { name: "Sliding Window Maximum", tier: 3, freq: "Medium", type: "Monotonic Deque", ds: "Array" },
+      { name: "Subarray Sum Equals K", tier: 2, freq: "High", type: "Prefix Sum", ds: "Array" },
+      { name: "Fruit Into Baskets", tier: 3, freq: "Low-Medium", type: "Sliding Window", ds: "Array" },
+      { name: "Longest Subarray With K Distinct", tier: 3, freq: "Medium", type: "Sliding Window", ds: "String" },
+      { name: "Count Subarrays with Product < K", tier: 3, freq: "Low", type: "Sliding Window", ds: "Array" },
+    ]
+  },
+  {
+    section: "HashMap & HashSet",
+    topics: [
+      { name: "Valid Anagram", tier: 1, freq: "Every Interview", type: "Frequency Counter", ds: "HashMap" },
+      { name: "Group Anagrams", tier: 1, freq: "Very High", type: "HashMap", ds: "HashMap" },
+      { name: "Top K Frequent Elements", tier: 1, freq: "Very High", type: "Bucket Sort", ds: "HashMap" },
+      { name: "Longest Consecutive Sequence", tier: 2, freq: "High", type: "HashSet", ds: "HashSet" },
+      { name: "Isomorphic Strings", tier: 2, freq: "Medium", type: "HashMap", ds: "HashMap" },
+      { name: "Word Pattern", tier: 2, freq: "Medium", type: "HashMap", ds: "HashMap" },
+      { name: "Encode & Decode Strings", tier: 3, freq: "Medium", type: "Design", ds: "String" },
+      { name: "Ransom Note", tier: 2, freq: "Medium", type: "Frequency Counter", ds: "HashMap" },
+    ]
+  },
+  {
+    section: "Stack & Monotonic Stack",
+    topics: [
+      { name: "Valid Parentheses", tier: 1, freq: "Every Interview", type: "Stack", ds: "Stack" },
+      { name: "Min Stack", tier: 1, freq: "Very High", type: "Stack Design", ds: "Stack" },
+      { name: "Next Greater Element", tier: 1, freq: "High", type: "Monotonic Stack", ds: "Stack" },
+      { name: "Daily Temperatures", tier: 2, freq: "High", type: "Monotonic Stack", ds: "Stack" },
+      { name: "Largest Rectangle in Histogram", tier: 3, freq: "Medium", type: "Monotonic Stack", ds: "Stack" },
+      { name: "Evaluate Reverse Polish Notation", tier: 2, freq: "Medium", type: "Stack", ds: "Stack" },
+      { name: "Implement Queue Using Two Stacks", tier: 2, freq: "Medium", type: "Stack Design", ds: "Stack" },
+      { name: "Generate Parentheses", tier: 2, freq: "High", type: "Backtracking", ds: "Stack" },
+      { name: "Asteroid Collision", tier: 3, freq: "Medium", type: "Monotonic Stack", ds: "Stack" },
+    ]
+  },
+  {
+    section: "Recursion & Backtracking",
+    topics: [
+      { name: "Flatten Nested Array (Deep)", tier: 1, freq: "Very High (JS)", type: "Recursion", ds: "Array" },
+      { name: "Deep Object Traversal", tier: 1, freq: "Very High (JS)", type: "Recursion", ds: "Object" },
+      { name: "Subsets", tier: 2, freq: "High", type: "Backtracking", ds: "Array" },
+      { name: "Permutations", tier: 2, freq: "High", type: "Backtracking", ds: "Array" },
+      { name: "Combination Sum", tier: 2, freq: "High", type: "Backtracking", ds: "Array" },
+      { name: "Word Search", tier: 3, freq: "Medium", type: "Backtracking + DFS", ds: "Grid" },
+      { name: "Palindrome Partitioning", tier: 3, freq: "Medium", type: "Backtracking", ds: "String" },
+      { name: "N-Queens", tier: 4, freq: "Low-Medium", type: "Backtracking", ds: "Grid" },
+      { name: "Letter Combinations of Phone Number", tier: 2, freq: "Medium", type: "Backtracking", ds: "String" },
+    ]
+  },
+  {
+    section: "Binary Search",
+    topics: [
+      { name: "Classic Binary Search", tier: 1, freq: "Every Interview", type: "Binary Search", ds: "Array" },
+      { name: "Search in Rotated Sorted Array", tier: 1, freq: "Very High", type: "Binary Search", ds: "Array" },
+      { name: "Find Minimum in Rotated Sorted Array", tier: 2, freq: "High", type: "Binary Search", ds: "Array" },
+      { name: "First & Last Position of Element", tier: 2, freq: "High", type: "Binary Search", ds: "Array" },
+      { name: "Search a 2D Matrix", tier: 2, freq: "Medium", type: "Binary Search", ds: "Matrix" },
+      { name: "Koko Eating Bananas", tier: 3, freq: "Medium", type: "Binary Search on Answer", ds: "Array" },
+      { name: "Capacity to Ship Packages", tier: 4, freq: "Medium", type: "Binary Search on Answer", ds: "Array" },
+    ]
+  },
+  {
+    section: "Linked List",
+    topics: [
+      { name: "Reverse Linked List", tier: 1, freq: "Very High", type: "Pointer", ds: "LinkedList" },
+      { name: "Detect Cycle — Floyd's Algorithm", tier: 1, freq: "Very High", type: "Fast & Slow Pointer", ds: "LinkedList" },
+      { name: "Merge Two Sorted Lists", tier: 1, freq: "High", type: "Pointer", ds: "LinkedList" },
+      { name: "Remove Nth Node From End", tier: 2, freq: "High", type: "Fast & Slow Pointer", ds: "LinkedList" },
+      { name: "Linked List Cycle II — Find Start", tier: 2, freq: "Medium", type: "Floyd's", ds: "LinkedList" },
+      { name: "Merge K Sorted Lists", tier: 3, freq: "Medium", type: "Heap / Divide & Conquer", ds: "LinkedList" },
+      { name: "Reorder List", tier: 3, freq: "Medium", type: "Pointer", ds: "LinkedList" },
+      { name: "Add Two Numbers (Linked List)", tier: 2, freq: "Medium", type: "Pointer", ds: "LinkedList" },
+      { name: "Palindrome Linked List", tier: 2, freq: "Medium", type: "Fast & Slow Pointer", ds: "LinkedList" },
+    ]
+  },
+  {
+    section: "Trees — DFS & BFS",
+    topics: [
+      { name: "Maximum Depth of Binary Tree", tier: 1, freq: "Very High", type: "DFS", ds: "Tree" },
+      { name: "Invert Binary Tree", tier: 1, freq: "Very High", type: "DFS", ds: "Tree" },
+      { name: "Level Order Traversal (BFS)", tier: 1, freq: "Very High", type: "BFS", ds: "Tree" },
+      { name: "Validate Binary Search Tree", tier: 1, freq: "Very High", type: "DFS", ds: "BST" },
+      { name: "Lowest Common Ancestor", tier: 1, freq: "High", type: "DFS", ds: "Tree" },
+      { name: "Same Tree", tier: 1, freq: "High", type: "DFS", ds: "Tree" },
+      { name: "Symmetric Tree", tier: 2, freq: "Medium", type: "DFS / BFS", ds: "Tree" },
+      { name: "Path Sum", tier: 2, freq: "High", type: "DFS", ds: "Tree" },
+      { name: "Diameter of Binary Tree", tier: 2, freq: "High", type: "DFS", ds: "Tree" },
+      { name: "Serialize & Deserialize Binary Tree", tier: 2, freq: "High", type: "DFS / BFS", ds: "Tree" },
+      { name: "Binary Tree Right Side View", tier: 2, freq: "Medium", type: "BFS", ds: "Tree" },
+      { name: "Count Good Nodes", tier: 3, freq: "Medium", type: "DFS", ds: "Tree" },
+      { name: "Kth Smallest in BST", tier: 3, freq: "Medium", type: "Inorder DFS", ds: "BST" },
+      { name: "Construct Tree from Pre & Inorder", tier: 4, freq: "Medium", type: "DFS", ds: "Tree" },
+    ]
+  },
+  {
+    section: "Graphs",
+    topics: [
+      { name: "Number of Islands", tier: 1, freq: "Every Interview", type: "BFS / DFS Grid", ds: "Graph" },
+      { name: "Course Schedule (Cycle Detection)", tier: 1, freq: "Very High", type: "Topological Sort", ds: "Graph" },
+      { name: "Topological Sort", tier: 1, freq: "High", type: "Kahn's / DFS", ds: "Graph" },
+      { name: "Clone Graph", tier: 2, freq: "High", type: "BFS + HashMap", ds: "Graph" },
+      { name: "Pacific Atlantic Water Flow", tier: 2, freq: "Medium", type: "BFS / DFS Multi-source", ds: "Graph" },
+      { name: "Word Ladder", tier: 3, freq: "Medium", type: "BFS Shortest Path", ds: "Graph" },
+      { name: "Dijkstra Shortest Path", tier: 4, freq: "Low-Medium", type: "BFS + Heap", ds: "Graph" },
+      { name: "Union-Find (Disjoint Set)", tier: 4, freq: "Medium", type: "DSU", ds: "Graph" },
+      { name: "Max Area of Island", tier: 2, freq: "Medium", type: "DFS Grid", ds: "Graph" },
+      { name: "Walls & Gates", tier: 3, freq: "Medium", type: "Multi-source BFS", ds: "Graph" },
+    ]
+  },
+  {
+    section: "Dynamic Programming",
+    topics: [
+      { name: "Climbing Stairs", tier: 1, freq: "Very High", type: "DP / Fibonacci", ds: "DP" },
+      { name: "House Robber", tier: 1, freq: "Very High", type: "DP Linear", ds: "DP" },
+      { name: "Coin Change", tier: 1, freq: "Very High", type: "DP Unbounded Knapsack", ds: "DP" },
+      { name: "Longest Increasing Subsequence", tier: 2, freq: "High", type: "DP / Binary Search", ds: "DP" },
+      { name: "Unique Paths", tier: 2, freq: "High", type: "DP Grid", ds: "DP" },
+      { name: "Longest Common Subsequence", tier: 2, freq: "Medium-High", type: "DP 2D", ds: "DP" },
+      { name: "Word Break", tier: 2, freq: "High", type: "DP + HashMap", ds: "DP" },
+      { name: "0/1 Knapsack", tier: 3, freq: "Medium", type: "DP Classic", ds: "DP" },
+      { name: "Edit Distance (Levenshtein)", tier: 4, freq: "Medium", type: "DP 2D", ds: "DP" },
+      { name: "Burst Balloons", tier: 5, freq: "Low", type: "DP Interval", ds: "DP" },
+      { name: "Partition Equal Subset Sum", tier: 3, freq: "Medium", type: "DP Subset", ds: "DP" },
+    ]
+  },
+  {
+    section: "Heap / Priority Queue",
+    topics: [
+      { name: "MinHeap Implementation from Scratch", tier: 2, freq: "High (JS)", type: "Heap", ds: "Heap" },
+      { name: "Kth Largest Element", tier: 2, freq: "Very High", type: "Min-Heap of size K", ds: "Heap" },
+      { name: "Top K Frequent Elements (Heap)", tier: 2, freq: "Very High", type: "Heap", ds: "Heap" },
+      { name: "Merge K Sorted Lists", tier: 3, freq: "High", type: "Heap", ds: "Heap" },
+      { name: "Find Median From Data Stream", tier: 4, freq: "Medium", type: "Two Heaps", ds: "Heap" },
+      { name: "Task Scheduler", tier: 3, freq: "Medium", type: "MaxHeap + Greedy", ds: "Heap" },
+      { name: "K Closest Points to Origin", tier: 3, freq: "Medium", type: "MinHeap", ds: "Heap" },
+    ]
+  },
+  {
+    section: "Sorting Algorithms",
+    topics: [
+      { name: "Merge Sort", tier: 2, freq: "High", type: "Divide & Conquer", ds: "Sort" },
+      { name: "Quick Sort", tier: 2, freq: "High", type: "Partitioning", ds: "Sort" },
+      { name: "Counting Sort", tier: 3, freq: "Medium", type: "Non-comparison", ds: "Sort" },
+      { name: "Sort Nearly Sorted Array", tier: 3, freq: "Medium", type: "Heap Sort", ds: "Sort" },
+      { name: "Sort by Custom Comparator", tier: 1, freq: "Very High (JS)", type: "Array.sort", ds: "Sort" },
+      { name: "Merge Intervals", tier: 2, freq: "High", type: "Sort + Greedy", ds: "Array" },
+      { name: "Meeting Rooms / Conflicts", tier: 2, freq: "High", type: "Sort + Sweep", ds: "Array" },
+    ]
+  },
+  {
+    section: "Strings",
+    topics: [
+      { name: "Reverse String / Words", tier: 1, freq: "Very High", type: "Two Pointer", ds: "String" },
+      { name: "Palindrome Check", tier: 1, freq: "Very High", type: "Two Pointer", ds: "String" },
+      { name: "String Compression (run-length)", tier: 2, freq: "High", type: "Two Pointer", ds: "String" },
+      { name: "Longest Palindromic Substring", tier: 2, freq: "High", type: "Expand Around Center", ds: "String" },
+      { name: "Longest Palindromic Subsequence", tier: 3, freq: "Medium", type: "DP 2D", ds: "String" },
+      { name: "Valid Palindrome II (one deletion)", tier: 2, freq: "Medium", type: "Two Pointer", ds: "String" },
+      { name: "Roman to Integer / Integer to Roman", tier: 2, freq: "Medium", type: "HashMap", ds: "String" },
+      { name: "Zigzag Conversion", tier: 3, freq: "Low-Medium", type: "Simulation", ds: "String" },
+    ]
+  },
+  {
+    section: "JS-Specific Interview Topics",
+    topics: [
+      { name: "Implement Debounce", tier: 1, freq: "Every JS Interview", type: "Closure + Timer", ds: "JS" },
+      { name: "Implement Throttle", tier: 1, freq: "Every JS Interview", type: "Closure + Timer", ds: "JS" },
+      { name: "Deep Clone (with circular refs)", tier: 1, freq: "Every JS Interview", type: "Recursion + WeakMap", ds: "JS" },
+      { name: "Implement Promise.all", tier: 1, freq: "Very High", type: "Promise", ds: "JS" },
+      { name: "Event Emitter / Observer", tier: 1, freq: "Very High", type: "OOP + Closure", ds: "JS" },
+      { name: "LRU Cache", tier: 1, freq: "Very High", type: "Map (ordered)", ds: "JS" },
+      { name: "Memoize Function", tier: 1, freq: "Very High", type: "Closure + Map", ds: "JS" },
+      { name: "Flatten Array (recursive + iterative)", tier: 1, freq: "Very High", type: "Recursion", ds: "JS" },
+      { name: "Group By", tier: 2, freq: "High", type: "reduce + HashMap", ds: "JS" },
+      { name: "Implement Curry", tier: 2, freq: "High", type: "Closure + Recursion", ds: "JS" },
+      { name: "Implement bind / call / apply", tier: 2, freq: "High", type: "Prototype", ds: "JS" },
+      { name: "Async Task Queue (concurrency limit)", tier: 2, freq: "High", type: "Promise + Queue", ds: "JS" },
+      { name: "Implement Promise.race / any", tier: 2, freq: "Medium-High", type: "Promise", ds: "JS" },
+      { name: "Deep Equal / Object Compare", tier: 2, freq: "High", type: "Recursion", ds: "JS" },
+      { name: "Implement pipe / compose", tier: 3, freq: "Medium", type: "Functional", ds: "JS" },
+      { name: "Virtual DOM Diffing (concept)", tier: 4, freq: "Senior Only", type: "Tree Diff", ds: "JS" },
+      { name: "Implement new operator", tier: 3, freq: "Medium", type: "Prototype", ds: "JS" },
+      { name: "Reactive State / Proxy-based tracking", tier: 5, freq: "Senior Rare", type: "Proxy + Closure", ds: "JS" },
+    ]
+  },
+  {
+    section: "Advanced / Senior Level",
+    topics: [
+      { name: "Trie (Insert, Search, startsWith)", tier: 3, freq: "Medium", type: "Trie", ds: "Tree" },
+      { name: "Design Add and Search Words", tier: 4, freq: "Medium", type: "Trie + DFS", ds: "Tree" },
+      { name: "Word Search II (Trie + Backtracking)", tier: 5, freq: "Low", type: "Trie + DFS", ds: "Tree" },
+      { name: "Segment Tree (Range Query)", tier: 5, freq: "Rare", type: "Segment Tree", ds: "Tree" },
+      { name: "Disjoint Set Union (Union-Find)", tier: 4, freq: "Medium", type: "DSU", ds: "Graph" },
+      { name: "Bit Manipulation Basics", tier: 3, freq: "Medium", type: "Bitwise", ds: "Math" },
+      { name: "Single Number (XOR trick)", tier: 2, freq: "Medium", type: "Bitwise", ds: "Array" },
+      { name: "Power of Two / Three / Four", tier: 3, freq: "Medium", type: "Bitwise / Math", ds: "Math" },
+      { name: "Count Bits", tier: 3, freq: "Medium", type: "DP + Bits", ds: "DP" },
+      { name: "Reverse Bits", tier: 3, freq: "Medium", type: "Bitwise", ds: "Math" },
+    ]
+  }
+];
+
+// --- Build DOM ---
+const content = document.getElementById('content');
+const checkedSet = new Set();
+const tierCounts = {};
+const tierDone = {};
+
+DATA.forEach(section => {
+  const block = document.createElement('div');
+  block.className = 'section-block';
+  block.dataset.section = section.section;
+
+  const header = document.createElement('div');
+  header.className = 'section-header';
+  header.innerHTML = `
+    <span class="section-num">§</span>
+    <span class="section-title">${section.section}</span>
+    <span class="section-line"></span>
+    <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--muted)">${section.topics.length} topics</span>
+  `;
+  block.appendChild(header);
+
+  const grid = document.createElement('div');
+  grid.className = 'topic-grid';
+
+  section.topics.forEach((topic, i) => {
+    const t = topic.tier;
+    tierCounts[t] = (tierCounts[t] || 0) + 1;
+    tierDone[t] = tierDone[t] || 0;
+
+    const id = `${section.section}-${i}`;
+    const card = document.createElement('div');
+    card.className = 'topic-card';
+    card.dataset.tier = t;
+    card.dataset.id = id;
+    card.style.animationDelay = `${i * 0.03}s`;
+
+    card.innerHTML = `
+      <div class="card-top">
+        <span class="topic-name">${topic.name}</span>
+        <span class="checkmark">✓</span>
+      </div>
+      <div class="card-meta">
+        <span class="tag tag-freq">${topic.freq}</span>
+        <span class="tag tag-type">${topic.type}</span>
+        <span class="tag tag-ds">${topic.ds}</span>
+        <span class="tier-badge">T${t}</span>
+      </div>
+    `;
+
+    card.addEventListener('click', () => toggleCard(card, id, t));
+    grid.appendChild(card);
+  });
+
+  block.appendChild(grid);
+  content.appendChild(block);
+});
+
+updateStats();
+updateProgress();
+
+function toggleCard(card, id, tier) {
+  if (checkedSet.has(id)) {
+    checkedSet.delete(id);
+    card.classList.remove('checked');
+    tierDone[tier]--;
+  } else {
+    checkedSet.add(id);
+    card.classList.add('checked');
+    tierDone[tier] = (tierDone[tier] || 0) + 1;
+  }
+  updateStats();
+  updateProgress();
+}
+
+function updateStats() {
+  const total = Object.values(tierCounts).reduce((a, b) => a + b, 0);
+  const done = checkedSet.size;
+  const pct = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('doneCount').textContent = done;
+  document.getElementById('totalCount').textContent = total;
+  document.getElementById('pctCount').textContent = pct + '%';
+}
+
+function updateProgress() {
+  for (let t = 1; t <= 5; t++) {
+    const total = tierCounts[t] || 0;
+    const done = tierDone[t] || 0;
+    const pct = total ? Math.round(done / total * 100) : 0;
+    document.getElementById(`pn${t}`).textContent = `${done}/${total}`;
+    document.getElementById(`pb${t}`).style.width = pct + '%';
+  }
+}
+
+function filterTier(tier, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  document.querySelectorAll('.topic-card').forEach(card => {
+    if (tier === 'all' || card.dataset.tier === tier) {
+      card.classList.remove('hidden');
+    } else {
+      card.classList.add('hidden');
+    }
+  });
+
+  // Hide section headers when all cards hidden
+  document.querySelectorAll('.section-block').forEach(block => {
+    const visible = block.querySelectorAll('.topic-card:not(.hidden)').length;
+    block.classList.toggle('all-hidden', visible === 0);
+  });
+}
+
+function resetAll() {
+  checkedSet.clear();
+  for (const k in tierDone) tierDone[k] = 0;
+  document.querySelectorAll('.topic-card').forEach(c => c.classList.remove('checked'));
+  updateStats();
+  updateProgress();
+}
+</script>
+<!-- </body>
+</html> -->
