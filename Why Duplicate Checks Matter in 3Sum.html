@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Three Sum — Why Duplicate Checks Matter</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08090f;
+  --panel:#0f1018;
+  --panel2:#13141e;
+  --border:#1e2030;
+  --i-color:#f59e0b;
+  --l-color:#38bdf8;
+  --r-color:#c084fc;
+  --found:#4ade80;
+  --dup:#ef4444;
+  --text:#e2e8f0;
+  --muted:#4b5563;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Outfit',sans-serif;
+}
+body{
+  background:var(--bg);color:var(--text);font-family:var(--sans);
+  min-height:100vh;padding:36px 16px 80px;
+  background-image:radial-gradient(ellipse 70% 30% at 50% 0%,rgba(245,158,11,.05) 0%,transparent 70%);
+}
+.page{max-width:1100px;margin:0 auto}
+
+/* ---- Header ---- */
+.header{text-align:center;margin-bottom:40px;animation:fadeUp .4s ease forwards}
+.header h1{font-size:clamp(24px,4vw,40px);font-weight:800;letter-spacing:-1px}
+.header h1 span{color:var(--dup)}
+.header p{color:var(--muted);font-family:var(--mono);font-size:13px;margin-top:8px}
+
+/* ---- Tab switcher ---- */
+.tabs{
+  display:flex;gap:0;background:var(--panel);border:1.5px solid var(--border);
+  border-radius:12px;padding:4px;margin-bottom:28px;
+  animation:fadeUp .4s ease .1s forwards;opacity:0;
+  max-width:600px;margin-left:auto;margin-right:auto;margin-bottom:28px;
+}
+.tab{
+  flex:1;padding:10px 16px;border-radius:9px;border:none;cursor:pointer;
+  font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.5px;
+  text-transform:uppercase;background:transparent;color:var(--muted);
+  transition:all .2s;
+}
+.tab.active-bad{background:rgba(239,68,68,.15);color:var(--dup);border:1px solid rgba(239,68,68,.3)}
+.tab.active-good{background:rgba(74,222,128,.12);color:var(--found);border:1px solid rgba(74,222,128,.25)}
+
+/* ---- Controls ---- */
+.ctrl-row{
+  display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:24px;
+  animation:fadeUp .4s ease .2s forwards;opacity:0;
+}
+.btn{
+  font-family:var(--mono);font-size:12px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;border:none;border-radius:8px;
+  padding:10px 22px;cursor:pointer;transition:opacity .15s,transform .1s;
+}
+.btn:hover{opacity:.85;transform:translateY(-1px)}
+.btn-auto{background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff}
+.btn-step{background:var(--panel2);color:var(--l-color);border:1.5px solid var(--l-color)}
+.btn-reset{background:var(--panel2);color:var(--muted);border:1.5px solid var(--border)}
+.speed-grp{display:flex;align-items:center;gap:6px}
+.speed-lbl{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.spd{font-family:var(--mono);font-size:11px;background:var(--panel2);border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:4px 10px;cursor:pointer;transition:all .15s}
+.spd.on{border-color:var(--l-color);color:var(--l-color);background:rgba(56,189,248,.07)}
+
+/* ---- Side by side ---- */
+.comparison{
+  display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;
+  animation:fadeUp .4s ease .25s forwards;opacity:0;
+}
+@media(max-width:700px){.comparison{grid-template-columns:1fr}}
+
+.vis-panel{
+  background:var(--panel);border:1.5px solid var(--border);border-radius:14px;
+  padding:20px;display:flex;flex-direction:column;gap:14px;
+}
+.vis-panel.bad-panel{border-color:rgba(239,68,68,.3)}
+.vis-panel.good-panel{border-color:rgba(74,222,128,.25)}
+
+.panel-title{
+  display:flex;align-items:center;gap:8px;
+  font-size:13px;font-weight:700;font-family:var(--mono);
+}
+.badge-bad{background:rgba(239,68,68,.15);color:var(--dup);border:1px solid rgba(239,68,68,.3);border-radius:5px;padding:3px 9px;font-size:10px;letter-spacing:1px}
+.badge-good{background:rgba(74,222,128,.12);color:var(--found);border:1px solid rgba(74,222,128,.25);border-radius:5px;padding:3px 9px;font-size:10px;letter-spacing:1px}
+
+/* Array stage */
+.arr-stage{display:flex;gap:6px;flex-wrap:wrap;min-height:90px;align-items:flex-end}
+.cw{display:flex;flex-direction:column;align-items:center;gap:4px}
+.cell{
+  width:50px;height:50px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:18px;font-weight:700;
+  border:2px solid var(--border);background:var(--panel2);color:var(--text);
+  transition:all .3s ease;position:relative;
+}
+.cell.ci{border-color:var(--i-color);background:rgba(245,158,11,.1);color:var(--i-color);box-shadow:0 0 16px rgba(245,158,11,.2)}
+.cell.cl{border-color:var(--l-color);background:rgba(56,189,248,.1);color:var(--l-color);box-shadow:0 0 16px rgba(56,189,248,.15)}
+.cell.cr{border-color:var(--r-color);background:rgba(192,132,252,.1);color:var(--r-color);box-shadow:0 0 16px rgba(192,132,252,.15)}
+.cell.cfound{border-color:var(--found);background:rgba(74,222,128,.12);color:var(--found);box-shadow:0 0 18px rgba(74,222,128,.25);animation:pulse .4s ease}
+.cell.cdup{border-color:var(--dup)!important;background:rgba(239,68,68,.12)!important;color:var(--dup)!important;box-shadow:0 0 16px rgba(239,68,68,.2)!important;animation:shake .4s ease}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+
+.pa{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px}
+.pa-i{background:rgba(245,158,11,.15);color:var(--i-color)}
+.pa-l{background:rgba(56,189,248,.12);color:var(--l-color)}
+.pa-r{background:rgba(192,132,252,.12);color:var(--r-color)}
+.pa-empty{visibility:hidden}
+.cidx{font-family:var(--mono);font-size:8px;color:var(--muted)}
+
+/* Status */
+.status{
+  background:var(--panel2);border-radius:8px;padding:11px 14px;
+  font-family:var(--mono);font-size:12px;line-height:1.6;
+  min-height:48px;border:1px solid var(--border);
+}
+.hi{color:var(--i-color);font-weight:700}
+.hl{color:var(--l-color);font-weight:700}
+.hr{color:var(--r-color);font-weight:700}
+.hf{color:var(--found);font-weight:700}
+.hd{color:var(--dup);font-weight:700}
+
+/* Sum badge */
+.sum-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sum-badge{font-family:var(--mono);font-size:12px;font-weight:700;padding:4px 12px;border-radius:6px;white-space:nowrap}
+.sz{background:rgba(74,222,128,.12);color:var(--found);border:1px solid rgba(74,222,128,.25)}
+.sn{background:rgba(56,189,248,.1);color:var(--l-color);border:1px solid rgba(56,189,248,.2)}
+.sp{background:rgba(192,132,252,.1);color:var(--r-color);border:1px solid rgba(192,132,252,.2)}
+.sna{background:var(--panel);color:var(--muted);border:1px solid var(--border)}
+
+/* Triplets found */
+.triplets-row{display:flex;gap:8px;flex-wrap:wrap;min-height:30px;align-items:center}
+.triplet-good{font-family:var(--mono);font-size:12px;background:rgba(74,222,128,.1);color:var(--found);border:1.5px solid rgba(74,222,128,.3);border-radius:6px;padding:5px 12px;animation:popIn .3s ease}
+.triplet-dup{font-family:var(--mono);font-size:12px;background:rgba(239,68,68,.1);color:var(--dup);border:1.5px solid rgba(239,68,68,.3);border-radius:6px;padding:5px 12px;animation:popIn .3s ease;text-decoration:line-through;opacity:.7}
+@keyframes popIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.no-t{font-family:var(--mono);font-size:11px;color:var(--muted);font-style:italic}
+
+/* Progress */
+.prog-row{display:flex;align-items:center;gap:10px}
+.prog-lbl{font-family:var(--mono);font-size:10px;color:var(--muted);white-space:nowrap}
+.prog-track{flex:1;height:3px;background:var(--border);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;transition:width .3s ease}
+.fill-bad{background:linear-gradient(90deg,var(--dup),#f97316)}
+.fill-good{background:linear-gradient(90deg,var(--i-color),var(--found))}
+
+/* Explanation box */
+.explain-box{
+  background:var(--panel);border:1.5px solid var(--border);border-radius:14px;
+  padding:22px 24px;margin-bottom:20px;
+  animation:fadeUp .4s ease .3s forwards;opacity:0;
+}
+.explain-box h2{font-size:15px;font-weight:700;margin-bottom:14px;color:#fff}
+.explain-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.explain-grid{grid-template-columns:1fr}}
+.ex-card{background:var(--panel2);border-radius:10px;padding:16px;border:1px solid var(--border)}
+.ex-card.bad{border-left:3px solid var(--dup)}
+.ex-card.good{border-left:3px solid var(--found)}
+.ex-title{font-family:var(--mono);font-size:11px;font-weight:700;margin-bottom:8px;letter-spacing:.5px}
+.ex-bad .ex-title{color:var(--dup)}
+.ex-good .ex-title{color:var(--found)}
+.ex-card p{font-size:13px;color:#94a3b8;line-height:1.7}
+.ex-card code{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.05);padding:1px 6px;border-radius:3px;color:var(--text)}
+
+/* Code snippets */
+.code-snip{
+  background:#060710;border:1px solid var(--border);border-radius:8px;
+  padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.8;
+  color:#c0cce0;margin-top:10px;overflow-x:auto;
+}
+.code-snip .kw{color:#f97583}
+.code-snip .cmt{color:#3a4a5a;font-style:italic}
+.code-snip .hl-del{background:rgba(239,68,68,.15);color:var(--dup);text-decoration:line-through}
+.code-snip .hl-add{background:rgba(74,222,128,.1);color:var(--found)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>Why Duplicate Checks <span>Matter</span> in 3Sum</h1>
+    <p>See exactly what goes wrong without them · Side-by-side live comparison</p>
+  </div>
+
+  <!-- Controls -->
+  <div class="ctrl-row">
+    <button class="btn btn-auto" onclick="startAuto()">▶ Auto Play</button>
+    <button class="btn btn-step" onclick="stepForward()">Step →</button>
+    <button class="btn btn-reset" onclick="resetAll()">↺ Reset</button>
+    <div class="speed-grp">
+      <span class="speed-lbl">Speed:</span>
+      <button class="spd" onclick="setSpd(1200)" id="ss">Slow</button>
+      <button class="spd on" onclick="setSpd(700)" id="sm">Normal</button>
+      <button class="spd" onclick="setSpd(220)" id="sf">Fast</button>
+    </div>
+  </div>
+
+  <!-- Explanation -->
+  <div class="explain-box">
+    <h2>The Two Duplicate Checks Explained</h2>
+    <div class="explain-grid">
+      <div class="ex-card bad">
+        <div class="ex-title ex-bad">❌ Without Check — Duplicate Triplets</div>
+        <p>Without skipping duplicates, the same triplet gets recorded multiple times. For <code>[-1,-1,0,1,2]</code> both <code>-1</code>s at index 0 and 1 produce <code>[-1,0,1]</code> — a duplicate.</p>
+        <div class="code-snip">
+<span class="cmt">// ❌ Missing outer skip</span>
+<span class="kw">for</span> (let i = 0; i &lt; n-2; i++) {
+  <span class="hl-del">// if (i>0 && nums[i]===nums[i-1]) continue</span>
+  ...
+}
+
+<span class="cmt">// ❌ Missing inner skip</span>
+<span class="kw">if</span> (sum === 0) {
+  result.push([...]);
+  <span class="hl-del">// while(nums[left]===nums[left+1]) left++</span>
+  <span class="hl-del">// while(nums[right]===nums[right-1]) right--</span>
+  left++; right--;
+}</div>
+      </div>
+      <div class="ex-card good">
+        <div class="ex-title ex-good">✅ With Check — Unique Triplets Only</div>
+        <p>Skipping duplicate <code>i</code> values avoids reprocessing the same fixed anchor. After finding a triplet, skipping equal <code>left</code>/<code>right</code> values prevents recording the same pair again.</p>
+        <div class="code-snip">
+<span class="cmt">// ✅ Outer skip for i</span>
+<span class="kw">if</span> (i > 0 && nums[i] === nums[i-1])
+  <span class="hl-add">  continue;</span>
+
+<span class="cmt">// ✅ Inner skip after finding triplet</span>
+<span class="kw">if</span> (sum === 0) {
+  result.push([...]);
+  <span class="hl-add">  while(nums[left]===nums[left+1]) left++;</span>
+  <span class="hl-add">  while(nums[right]===nums[right-1]) right--;</span>
+  left++; right--;
+}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Side-by-side visualizer -->
+  <div class="comparison">
+
+    <!-- BAD side -->
+    <div class="vis-panel bad-panel">
+      <div class="panel-title">
+        <span class="badge-bad">NO CHECKS</span>
+        <span style="color:var(--dup)">Without Duplicate Skip</span>
+      </div>
+      <div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Array</div>
+        <div class="arr-stage" id="arr-bad"></div>
+      </div>
+      <div class="status" id="status-bad">Press Play or Step to begin.</div>
+      <div class="sum-row">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">SUM:</span>
+        <div class="sum-badge sna" id="sum-bad">?</div>
+      </div>
+      <div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Triplets collected</div>
+        <div class="triplets-row" id="trips-bad"><span class="no-t">None yet…</span></div>
+      </div>
+      <div class="prog-row">
+        <span class="prog-lbl" id="prog-lbl-bad">0 / 0</span>
+        <div class="prog-track"><div class="prog-fill fill-bad" id="prog-bad" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- GOOD side -->
+    <div class="vis-panel good-panel">
+      <div class="panel-title">
+        <span class="badge-good">WITH CHECKS</span>
+        <span style="color:var(--found)">With Duplicate Skip</span>
+      </div>
+      <div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Array</div>
+        <div class="arr-stage" id="arr-good"></div>
+      </div>
+      <div class="status" id="status-good">Press Play or Step to begin.</div>
+      <div class="sum-row">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">SUM:</span>
+        <div class="sum-badge sna" id="sum-good">?</div>
+      </div>
+      <div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Triplets collected</div>
+        <div class="triplets-row" id="trips-good"><span class="no-t">None yet…</span></div>
+      </div>
+      <div class="prog-row">
+        <span class="prog-lbl" id="prog-lbl-good">0 / 0</span>
+        <div class="prog-track"><div class="prog-fill fill-good" id="prog-good" style="width:0%"></div></div>
+      </div>
+    </div>
+
+  </div><!-- end comparison -->
+
+</div>
+
+<script>
+// ─── INPUT ──────────────────────────────────────────────────
+const INPUT = [-1, 0, 1, 2, -1, -4];
+
+// ─── STEP GENERATORS ────────────────────────────────────────
+function genSteps(arr, withChecks) {
+  const s = [];
+  const sorted = [...arr].sort((a, b) => a - b);
+  const n = sorted.length;
+  const found = [];
+
+  s.push({ arr:sorted, msg:`Sorted → <span class="hi">[${sorted.join(', ')}]</span>`, i:-1, left:-1, right:-1, sum:null, found:[], dupFlags:[] });
+
+  for (let i = 0; i < n - 2; i++) {
+
+    if (withChecks && i > 0 && sorted[i] === sorted[i-1]) {
+      s.push({ arr:sorted, msg:`<span class="hi">i=${i}</span>: Skip — duplicate of nums[${i-1}]=${sorted[i-1]} <span class="hd">→ continue</span>`, i, left:-1, right:-1, sum:null, found:[...found], dupFlags:[i] });
+      continue;
+    }
+
+    if (!withChecks && i > 0 && sorted[i] === sorted[i-1]) {
+      // show it running anyway (no skip)
+      s.push({ arr:sorted, msg:`<span class="hd">i=${i}: SAME value ${sorted[i]} as i-1 — but NO check, continuing anyway!</span>`, i, left:-1, right:-1, sum:null, found:[...found], dupFlags:[], warn:true });
+    }
+
+    s.push({ arr:sorted, msg:`Fix <span class="hi">i=${i}</span> (val=${sorted[i]}). Set <span class="hl">left=${i+1}</span>, <span class="hr">right=${n-1}</span>.`, i, left:i+1, right:n-1, sum:null, found:[...found], dupFlags:[] });
+
+    let left = i + 1, right = n - 1;
+
+    while (left < right) {
+      const sum = sorted[i] + sorted[left] + sorted[right];
+      s.push({ arr:sorted, msg:`<span class="hi">${sorted[i]}</span>+<span class="hl">${sorted[left]}</span>+<span class="hr">${sorted[right]}</span> = ${sum}`, i, left, right, sum, found:[...found], dupFlags:[] });
+
+      if (sum === 0) {
+        const isDup = found.some(t => t[0]===sorted[i]&&t[1]===sorted[left]&&t[2]===sorted[right]);
+        found.push([sorted[i], sorted[left], sorted[right]]);
+
+        if (!withChecks && isDup) {
+          s.push({ arr:sorted, msg:`<span class="hd">⚠ DUPLICATE! [${sorted[i]},${sorted[left]},${sorted[right]}] already recorded!</span>`, i, left, right, sum:0, found:[...found], dupFlags:[i,left,right], isDup:true });
+        } else {
+          s.push({ arr:sorted, msg:`<span class="hf">✓ Triplet [${sorted[i]},${sorted[left]},${sorted[right]}] found!</span>${withChecks?' Skipping duplicates…':''}`, i, left, right, sum:0, found:[...found], dupFlags:[], isFound:true });
+        }
+
+        if (withChecks) {
+          const dl=[], dr=[];
+          while (left < right && sorted[left] === sorted[left+1]) { dl.push(left); left++; }
+          while (left < right && sorted[right] === sorted[right-1]) { dr.push(right); right--; }
+          if (dl.length||dr.length) {
+            s.push({ arr:sorted, msg:`Skip inner duplicates at <span class="hl">left</span>/<span class="hr">right</span>.`, i, left, right, sum:0, found:[...found], dupFlags:[...dl,...dr] });
+          }
+        }
+
+        left++; right--;
+        if (left < right) s.push({ arr:sorted, msg:`Move both: <span class="hl">left→${left}</span>, <span class="hr">right→${right}</span>.`, i, left, right, sum:null, found:[...found], dupFlags:[] });
+
+      } else if (sum < 0) {
+        left++;
+        s.push({ arr:sorted, msg:`Sum < 0 → move <span class="hl">left→${left}</span>.`, i, left, right, sum, found:[...found], dupFlags:[] });
+      } else {
+        right--;
+        s.push({ arr:sorted, msg:`Sum > 0 → move <span class="hr">right→${right}</span>.`, i, left, right, sum, found:[...found], dupFlags:[] });
+      }
+    }
+  }
+
+  const dupCount = found.length - new Set(found.map(t=>t.join(','))).size;
+  s.push({ arr:sorted, msg: withChecks
+    ? `<span class="hf">✓ Done! ${found.length} unique triplet${found.length!==1?'s':''}, zero duplicates.</span>`
+    : `<span class="hd">⚠ Done! ${found.length} triplets — but ${dupCount} duplicate${dupCount!==1?'s':''} included!</span>`,
+    i:-1, left:-1, right:-1, sum:null, found:[...found], dupFlags:[], done:true });
+
+  return s;
+}
+
+// ─── RENDER ─────────────────────────────────────────────────
+function renderSide(side, steps, idx) {
+  if (idx < 0 || idx >= steps.length) return;
+  const st = steps[idx];
+  const suffix = side; // 'bad' or 'good'
+
+  // Array
+  const stage = document.getElementById(`arr-${suffix}`);
+  stage.innerHTML = '';
+  st.arr.forEach((val, i) => {
+    const w = document.createElement('div'); w.className = 'cw';
+    const pa = document.createElement('div');
+    if (i===st.i)     { pa.className='pa pa-i'; pa.textContent='i'; }
+    else if(i===st.left)  { pa.className='pa pa-l'; pa.textContent='L'; }
+    else if(i===st.right) { pa.className='pa pa-r'; pa.textContent='R'; }
+    else { pa.className='pa-empty'; pa.textContent='.'; }
+
+    const cell = document.createElement('div'); cell.className='cell';
+    cell.textContent = val;
+    if (st.isFound && (i===st.i||i===st.left||i===st.right)) cell.classList.add('cfound');
+    else if (st.isDup && (i===st.i||i===st.left||i===st.right)) cell.classList.add('cdup');
+    else if (st.dupFlags && st.dupFlags.includes(i)) cell.classList.add('cdup');
+    else if (i===st.i)     cell.classList.add('ci');
+    else if (i===st.left)  cell.classList.add('cl');
+    else if (i===st.right) cell.classList.add('cr');
+
+    const ci = document.createElement('div'); ci.className='cidx'; ci.textContent=i;
+    w.appendChild(pa); w.appendChild(cell); w.appendChild(ci);
+    stage.appendChild(w);
+  });
+
+  // Status
+  document.getElementById(`status-${suffix}`).innerHTML = st.msg;
+
+  // Sum badge
+  const sb = document.getElementById(`sum-${suffix}`);
+  if (st.sum===null)     { sb.className='sum-badge sna'; sb.textContent='?'; }
+  else if (st.sum===0)   { sb.className='sum-badge sz'; sb.textContent='sum = 0 ✓'; }
+  else if (st.sum<0)     { sb.className='sum-badge sn'; sb.textContent=`sum = ${st.sum} < 0`; }
+  else                   { sb.className='sum-badge sp'; sb.textContent=`sum = ${st.sum} > 0`; }
+
+  // Triplets
+  const tg = document.getElementById(`trips-${suffix}`);
+  tg.innerHTML = '';
+  if (!st.found.length) { tg.innerHTML='<span class="no-t">None yet…</span>'; }
+  else {
+    const seen = new Set();
+    st.found.forEach(t => {
+      const key = t.join(',');
+      const isDup = seen.has(key);
+      seen.add(key);
+      const chip = document.createElement('div');
+      chip.className = isDup ? 'triplet-dup' : 'triplet-good';
+      chip.textContent = `[${t.join(', ')}]${isDup?' ⚠ DUP':''}`;
+      tg.appendChild(chip);
+    });
+  }
+
+  // Progress
+  document.getElementById(`prog-lbl-${suffix}`).textContent = `${idx+1} / ${steps.length}`;
+  document.getElementById(`prog-${suffix}`).style.width = `${((idx+1)/steps.length)*100}%`;
+}
+
+// ─── STATE ──────────────────────────────────────────────────
+let badSteps=[], goodSteps=[], curStep=-1, autoTimer=null, speed=700;
+
+function buildAll() {
+  badSteps  = genSteps(INPUT, false);
+  goodSteps = genSteps(INPUT, true);
+  curStep = -1;
+}
+
+function renderBoth(idx) {
+  const bi = Math.min(idx, badSteps.length-1);
+  const gi = Math.min(idx, goodSteps.length-1);
+  renderSide('bad',  badSteps,  bi);
+  renderSide('good', goodSteps, gi);
+  curStep = idx;
+}
+
+function resetAll() {
+  clearTimeout(autoTimer); autoTimer=null;
+  buildAll(); renderBoth(0);
+}
+
+function stepForward() {
+  clearTimeout(autoTimer); autoTimer=null;
+  const maxLen = Math.max(badSteps.length, goodSteps.length);
+  if (curStep < maxLen-1) renderBoth(curStep+1);
+}
+
+function startAuto() {
+  const maxLen = Math.max(badSteps.length, goodSteps.length);
+  if (curStep >= maxLen-1) { buildAll(); renderBoth(0); }
+  clearTimeout(autoTimer);
+  function tick() {
+    const maxL = Math.max(badSteps.length, goodSteps.length);
+    if (curStep < maxL-1) { renderBoth(curStep+1); autoTimer = setTimeout(tick, speed); }
+  }
+  autoTimer = setTimeout(tick, speed);
+}
+
+function setSpd(ms) {
+  speed=ms;
+  ['ss','sm','sf'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  if(ms===1200) document.getElementById('ss').classList.add('on');
+  else if(ms===700) document.getElementById('sm').classList.add('on');
+  else document.getElementById('sf').classList.add('on');
+}
+
+window.addEventListener('DOMContentLoaded', () => { buildAll(); renderBoth(0); });
+</script>
+</body>
+</html>

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Greedy Coin Change Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Unbounded:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#faf6ef;
+  --surface:#f2ece0;
+  --surface2:#ebe3d4;
+  --border:#d8cfbe;
+  --ink:#1a1510;
+  --muted:#8a7e6e;
+  --coin1:#f59e0b;
+  --coin2:#d97706;
+  --active:#dc2626;
+  --done:#16a34a;
+  --used:#2563eb;
+  --rem:#7c3aed;
+  --mono:'JetBrains Mono',monospace;
+  --head:'Unbounded',sans-serif;
+  --sans:'DM Sans',sans-serif;
+}
+body{
+  background:var(--bg);color:var(--ink);font-family:var(--sans);
+  min-height:100vh;padding:40px 16px 80px;
+  background-image:radial-gradient(circle at 50% 0%,rgba(245,158,11,.08) 0%,transparent 60%);
+}
+.page{max-width:900px;margin:0 auto}
+
+/* ── Header ── */
+.hdr{margin-bottom:36px;animation:up .4s ease forwards}
+.hdr h1{font-family:var(--head);font-size:clamp(26px,5vw,52px);font-weight:900;line-height:1;letter-spacing:-1px}
+.hdr h1 em{color:var(--active);font-style:normal}
+.hdr p{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:8px}
+
+/* ── Input row ── */
+.inputs{
+  display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;
+  background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:14px 18px;
+  animation:up .4s ease .1s forwards;opacity:0;
+}
+.ifield{display:flex;align-items:center;gap:8px;flex:1;min-width:180px}
+.ifield label{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;white-space:nowrap}
+.ifield input{
+  flex:1;font-family:var(--mono);font-size:14px;
+  background:transparent;border:none;border-bottom:1.5px solid var(--border);
+  color:var(--ink);outline:none;padding:3px 0;transition:border-color .2s;
+}
+.ifield input:focus{border-color:var(--coin1)}
+
+/* ── Controls ── */
+.ctrl{
+  display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:30px;
+  animation:up .4s ease .15s forwards;opacity:0;
+}
+.btn{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;transition:all .15s}
+.btn:hover{transform:translateY(-1px);opacity:.88}
+.btn:active{transform:translateY(0)}
+.btn-play{background:var(--ink);color:#fff}
+.btn-step{background:var(--surface2);color:var(--used);border:1.5px solid var(--used)}
+.btn-reset{background:var(--surface2);color:var(--muted);border:1.5px solid var(--border)}
+.spd-grp{display:flex;align-items:center;gap:6px}
+.spd-lbl{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.spdbtn{font-family:var(--mono);font-size:10px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:4px 10px;cursor:pointer;transition:all .15s}
+.spdbtn.on{border-color:var(--coin1);color:var(--coin1);background:rgba(245,158,11,.08)}
+
+/* ── Coin denominations row ── */
+.denoms-card{
+  background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:22px 24px;
+  margin-bottom:16px;animation:up .4s ease .2s forwards;opacity:0;
+}
+.sec-lbl{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.denom-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.denom-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform .3s}
+.denom-wrap.active-denom{transform:translateY(-6px)}
+.coin{
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-weight:700;border:3px solid;
+  transition:all .3s ease;position:relative;cursor:default;
+}
+.coin-lg{width:68px;height:68px;font-size:18px}
+.coin-sm{width:52px;height:52px;font-size:14px}
+.coin-xs{width:40px;height:40px;font-size:12px}
+.coin-idle{background:#fff;border-color:var(--border);color:var(--muted)}
+.coin-active{
+  background:rgba(245,158,11,.12);border-color:var(--coin1);color:var(--coin1);
+  box-shadow:0 0 24px rgba(245,158,11,.35);
+  animation:coinpulse 1s ease infinite;
+}
+.coin-done{background:rgba(22,163,74,.08);border-color:var(--done);color:var(--done)}
+.coin-exhausted{background:var(--surface2);border-color:var(--border);color:var(--muted);opacity:.4}
+@keyframes coinpulse{0%,100%{box-shadow:0 0 16px rgba(245,158,11,.3)}50%{box-shadow:0 0 30px rgba(245,158,11,.55)}}
+.denom-label{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.5px}
+.use-count{
+  font-family:var(--mono);font-size:10px;font-weight:700;
+  background:var(--ink);color:#fff;border-radius:10px;padding:2px 7px;
+  min-width:22px;text-align:center;
+}
+
+/* ── Total remaining bar ── */
+.total-card{
+  background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:22px 24px;
+  margin-bottom:16px;animation:up .4s ease .25s forwards;opacity:0;
+}
+.total-nums{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.total-big{font-family:var(--head);font-size:48px;font-weight:900;line-height:1;color:var(--rem);transition:all .3s}
+.total-big.zero{color:var(--done)}
+.total-sub{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.bar-track{height:16px;background:var(--surface2);border-radius:99px;overflow:hidden;border:1px solid var(--border);margin-bottom:8px}
+.bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--rem),var(--coin1));transition:width .5s ease}
+.bar-fill.empty{background:var(--done)}
+
+/* ── Status ── */
+.status-card{
+  background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:18px 24px;
+  margin-bottom:16px;font-family:var(--mono);font-size:13px;line-height:1.7;
+  animation:up .4s ease .28s forwards;opacity:0;min-height:56px;
+}
+.hi{color:var(--active);font-weight:700}
+.hc{color:var(--coin1);font-weight:700}
+.hd{color:var(--done);font-weight:700}
+.hr{color:var(--rem);font-weight:700}
+.hu{color:var(--used);font-weight:700}
+
+/* ── Result coins ── */
+.result-card{
+  background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:22px 24px;
+  margin-bottom:16px;animation:up .4s ease .3s forwards;opacity:0;
+}
+.coins-collected{display:flex;gap:8px;flex-wrap:wrap;min-height:52px;align-items:center}
+.rcoin{
+  width:48px;height:48px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:13px;font-weight:700;
+  background:rgba(37,99,235,.1);border:2px solid var(--used);color:var(--used);
+  animation:popIn .3s ease;
+}
+@keyframes popIn{from{transform:scale(0) rotate(-30deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+.no-coins{font-family:var(--mono);font-size:12px;color:var(--muted);font-style:italic}
+.result-summary{
+  margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;
+}
+.chip{font-family:var(--mono);font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:#fff}
+.chip span{color:var(--muted);margin-right:4px}
+.chip strong{color:var(--ink)}
+
+/* ── Code ── */
+.code-card{
+  background:var(--ink);border-radius:14px;overflow:hidden;
+  margin-bottom:16px;animation:up .4s ease .35s forwards;opacity:0;
+}
+.code-hdr{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 18px;border-bottom:1px solid #2a2520;background:#120f0a;
+}
+.code-hdr span{font-family:var(--mono);font-size:11px;color:#4a4238}
+.dots{display:flex;gap:5px}
+.dot{width:10px;height:10px;border-radius:50%}
+pre{
+  padding:22px 24px;font-family:var(--mono);font-size:12.5px;
+  line-height:1.9;color:#c8bfaf;overflow-x:auto;
+}
+.kw{color:#f97583}.fn{color:#79b8ff}.cm{color:#3a3028;font-style:italic}.vr{color:#ffea7f}.nm{color:#ffab70}.op{color:#e2d9cf}
+.code-line{display:block;transition:background .2s;border-radius:3px;padding:0 4px;margin:0 -4px}
+.code-line.lit{background:rgba(245,158,11,.15);border-left:2px solid var(--coin1);padding-left:8px;margin-left:-8px}
+
+/* ── Progress ── */
+.prog-row{display:flex;align-items:center;gap:10px;margin-top:6px}
+.prog-lbl{font-family:var(--mono);font-size:10px;color:var(--muted);white-space:nowrap}
+.prog-track{flex:1;height:3px;background:var(--surface2);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--coin1),var(--active));transition:width .3s}
+
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="hdr">
+    <h1>Greedy <em>Coin</em><br/>Change</h1>
+    <p>Visualizer · Step-by-step · Greedy Algorithm</p>
+  </div>
+
+  <!-- Inputs -->
+  <div class="inputs">
+    <div class="ifield">
+      <label>Coins</label>
+      <input id="inCoins" value="10, 5, 2, 1" placeholder="e.g. 10, 5, 2, 1"/>
+    </div>
+    <div class="ifield">
+      <label>Total</label>
+      <input id="inTotal" value="27" placeholder="e.g. 27" style="max-width:80px"/>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="ctrl">
+    <button class="btn btn-play" onclick="startAuto()">▶ Auto Play</button>
+    <button class="btn btn-step" onclick="stepFwd()">Step →</button>
+    <button class="btn btn-reset" onclick="resetAll()">↺ Reset</button>
+    <div class="spd-grp">
+      <span class="spd-lbl">Speed:</span>
+      <button class="spdbtn" onclick="setSpd(1200)" id="ss">Slow</button>
+      <button class="spdbtn on" onclick="setSpd(650)" id="sm">Normal</button>
+      <button class="spdbtn" onclick="setSpd(180)" id="sf">Fast</button>
+    </div>
+  </div>
+
+  <!-- Coin denominations -->
+  <div class="denoms-card">
+    <div class="sec-lbl">Coin Denominations (sorted descending)</div>
+    <div class="denom-row" id="denomRow"></div>
+  </div>
+
+  <!-- Total remaining -->
+  <div class="total-card">
+    <div class="sec-lbl">Remaining Total</div>
+    <div class="total-nums">
+      <div class="total-big" id="totalBig">—</div>
+      <div class="total-sub" id="totalSub"></div>
+    </div>
+    <div class="bar-track"><div class="bar-fill" id="barFill" style="width:100%"></div></div>
+    <div class="prog-row">
+      <span class="prog-lbl" id="stepLbl">0 / 0</span>
+      <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-card" id="statusMsg">Press ▶ Auto Play or Step → to begin.</div>
+
+  <!-- Collected coins -->
+  <div class="result-card">
+    <div class="sec-lbl">Coins Collected</div>
+    <div class="coins-collected" id="coinsCollected">
+      <span class="no-coins">None yet…</span>
+    </div>
+    <div class="result-summary" id="resultSummary"></div>
+  </div>
+
+  <!-- Code -->
+  <div class="code-card">
+    <div class="code-hdr">
+      <div class="dots">
+        <div class="dot" style="background:#f06060"></div>
+        <div class="dot" style="background:#f0c040"></div>
+        <div class="dot" style="background:#4af0a0"></div>
+      </div>
+      <span>takeCoin.js</span>
+    </div>
+    <pre id="codeBlock">
+<span class="code-line" id="ln0"><span class="kw">function</span> <span class="fn">takeCoin</span>(arr, total) {</span>
+<span class="code-line" id="ln1">  <span class="kw">const</span> <span class="vr">coinsArr</span> = [];</span>
+<span class="code-line" id="ln2">  <span class="kw">for</span> (<span class="kw">let</span> <span class="vr">i</span> = <span class="nm">0</span>; i &lt; arr.length; i++) {</span>
+<span class="code-line" id="ln3">    <span class="kw">while</span> (<span class="vr">total</span> &gt;= arr[<span class="vr">i</span>]) {</span>
+<span class="code-line" id="ln4">      coinsArr.<span class="fn">push</span>(arr[<span class="vr">i</span>]);  <span class="cm">// take this coin</span></span>
+<span class="code-line" id="ln5">      <span class="vr">total</span> = total - arr[<span class="vr">i</span>]; <span class="cm">// subtract</span></span>
+<span class="code-line" id="ln6">    }                          <span class="cm">// repeat while fits</span></span>
+<span class="code-line" id="ln7">  }                            <span class="cm">// next denomination</span></span>
+<span class="code-line" id="ln8">  <span class="kw">return</span> <span class="vr">coinsArr</span>;</span>
+<span class="code-line" id="ln9">}</span>
+</pre>
+  </div>
+
+</div>
+
+<script>
+// ── Step generator ──────────────────────────────────────────
+function genSteps(coinsRaw, totalStart) {
+  const arr = [...coinsRaw];
+  const s = [];
+  let total = totalStart;
+  const coinsArr = [];
+  const useCounts = new Array(arr.length).fill(0);
+
+  s.push({ arr, total, coinsArr:[], useCounts:[...useCounts], activeI:-1, msg:`Start: coins = <span class="hc">[${arr.join(', ')}]</span>, total = <span class="hr">${total}</span>. Greedy: always take the largest coin that fits.`, line:'ln1' });
+
+  for (let i = 0; i < arr.length; i++) {
+    s.push({ arr, total, coinsArr:[...coinsArr], useCounts:[...useCounts], activeI:i, msg:`Outer loop <span class="hi">i=${i}</span>: trying coin <span class="hc">${arr[i]}</span>. total=${total}. Does <span class="hr">${total}</span> ≥ <span class="hc">${arr[i]}</span>?`, line:'ln2' });
+
+    if (total < arr[i]) {
+      s.push({ arr, total, coinsArr:[...coinsArr], useCounts:[...useCounts], activeI:i, msg:`<span class="hc">${arr[i]}</span> > remaining <span class="hr">${total}</span> → skip this denomination.`, line:'ln3' });
+      continue;
+    }
+
+    while (total >= arr[i]) {
+      s.push({ arr, total, coinsArr:[...coinsArr], useCounts:[...useCounts], activeI:i, msg:`While: <span class="hr">${total}</span> ≥ <span class="hc">${arr[i]}</span> ✓ → take coin <span class="hc">${arr[i]}</span>.`, line:'ln3' });
+      coinsArr.push(arr[i]);
+      useCounts[i]++;
+      s.push({ arr, total, coinsArr:[...coinsArr], useCounts:[...useCounts], activeI:i, msg:`Push <span class="hc">${arr[i]}</span> → coinsArr = <span class="hu">[${coinsArr.join(', ')}]</span>`, line:'ln4' });
+      total -= arr[i];
+      s.push({ arr, total, coinsArr:[...coinsArr], useCounts:[...useCounts], activeI:i, msg:`total = ${total + arr[i]} − ${arr[i]} = <span class="hr">${total}</span>. ${total === 0 ? '<span class="hd">✓ total is 0!</span>' : `Still ${total} left.`}`, line:'ln5' });
+      if (total === 0) break;
+    }
+    if (total === 0) break;
+  }
+
+  s.push({ arr, total:0, coinsArr:[...coinsArr], useCounts:[...useCounts], activeI:-1, msg:`<span class="hd">✓ Done! Used ${coinsArr.length} coin(s): [${coinsArr.join(', ')}]</span>`, line:'ln8', done:true });
+  return s;
+}
+
+// ── Render ──────────────────────────────────────────────────
+let steps=[], cur=-1, timer=null, speed=650, initTotal=0;
+
+function renderStep(idx) {
+  if (idx<0||idx>=steps.length) return;
+  const st = steps[idx];
+  cur = idx;
+
+  // Denominations
+  const dr = document.getElementById('denomRow');
+  dr.innerHTML = '';
+  st.arr.forEach((val, i) => {
+    const isActive = i === st.activeI;
+    const isDone = st.done || (st.activeI > i);
+    const isExhausted = !st.done && st.activeI !== -1 && i > st.activeI;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'denom-wrap' + (isActive ? ' active-denom' : '');
+
+    // size by denomination rank
+    const sizes = ['coin-lg','coin-sm','coin-xs','coin-xs'];
+    const szClass = sizes[i] || 'coin-xs';
+
+    const coin = document.createElement('div');
+    coin.className = `coin ${szClass} ${isActive ? 'coin-active' : isDone ? 'coin-done' : 'coin-idle'}`;
+    coin.textContent = val;
+
+    const lbl = document.createElement('div');
+    lbl.className = 'denom-label';
+    lbl.textContent = `×${st.useCounts[i]}`;
+
+    const uc = document.createElement('div');
+    uc.className = 'use-count';
+    uc.textContent = st.useCounts[i];
+
+    wrap.appendChild(coin);
+    wrap.appendChild(uc);
+    dr.appendChild(wrap);
+  });
+
+  // Total bar
+  const pct = initTotal > 0 ? (st.total / initTotal) * 100 : 0;
+  document.getElementById('totalBig').textContent = st.total;
+  document.getElementById('totalBig').className = 'total-big' + (st.total === 0 ? ' zero' : '');
+  document.getElementById('totalSub').textContent = `of ${initTotal}`;
+  const bf = document.getElementById('barFill');
+  bf.style.width = `${pct}%`;
+  bf.className = 'bar-fill' + (st.total === 0 ? ' empty' : '');
+
+  // Status
+  document.getElementById('statusMsg').innerHTML = st.msg;
+
+  // Coins collected
+  const cc = document.getElementById('coinsCollected');
+  cc.innerHTML = '';
+  if (!st.coinsArr.length) {
+    cc.innerHTML = '<span class="no-coins">None yet…</span>';
+  } else {
+    st.coinsArr.forEach((v, ci) => {
+      const rc = document.createElement('div');
+      rc.className = 'rcoin';
+      rc.style.animationDelay = `${ci * 0.04}s`;
+      rc.textContent = v;
+      cc.appendChild(rc);
+    });
+  }
+
+  // Summary
+  const rs = document.getElementById('resultSummary');
+  rs.innerHTML = '';
+  if (st.done) {
+    const counts = {};
+    st.coinsArr.forEach(v => counts[v] = (counts[v]||0)+1);
+    Object.entries(counts).forEach(([val,cnt]) => {
+      const chip = document.createElement('div');
+      chip.className='chip';
+      chip.innerHTML=`<span>${val}×</span><strong>${cnt}</strong>`;
+      rs.appendChild(chip);
+    });
+    const total_chip = document.createElement('div');
+    total_chip.className='chip';
+    total_chip.innerHTML=`<span>total coins:</span><strong>${st.coinsArr.length}</strong>`;
+    rs.appendChild(total_chip);
+  }
+
+  // Code highlight
+  document.querySelectorAll('.code-line').forEach(el => el.classList.remove('lit'));
+  if (st.line) {
+    const el = document.getElementById(st.line);
+    if (el) el.classList.add('lit');
+  }
+
+  // Progress
+  document.getElementById('stepLbl').textContent = `${idx+1} / ${steps.length}`;
+  document.getElementById('progFill').style.width = `${((idx+1)/steps.length)*100}%`;
+}
+
+function parse() {
+  const coins = document.getElementById('inCoins').value.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n)&&n>0);
+  const total = parseInt(document.getElementById('inTotal').value.trim());
+  return { coins, total };
+}
+
+function build() {
+  const { coins, total } = parse();
+  if (!coins.length || isNaN(total) || total <= 0) { alert('Enter valid coins and a positive total.'); return false; }
+  initTotal = total;
+  steps = genSteps(coins, total);
+  cur = -1;
+  return true;
+}
+
+function resetAll() {
+  clearTimeout(timer); timer=null;
+  if (!build()) return;
+  renderStep(0);
+}
+
+function stepFwd() {
+  clearTimeout(timer); timer=null;
+  if (!steps.length) { if(!build()) return; }
+  if (cur < steps.length-1) renderStep(cur+1);
+}
+
+function startAuto() {
+  if (!steps.length || cur >= steps.length-1) { if(!build()) return; renderStep(0); }
+  clearTimeout(timer);
+  function tick() {
+    if (cur < steps.length-1) { renderStep(cur+1); timer=setTimeout(tick,speed); }
+  }
+  timer=setTimeout(tick,speed);
+}
+
+function setSpd(ms) {
+  speed=ms;
+  ['ss','sm','sf'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  if(ms===1200) document.getElementById('ss').classList.add('on');
+  else if(ms===650) document.getElementById('sm').classList.add('on');
+  else document.getElementById('sf').classList.add('on');
+}
+
+window.addEventListener('DOMContentLoaded',()=>{ build(); renderStep(0); });
+</script>
+</body>
+</html>

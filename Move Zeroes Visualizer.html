@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Move Zeroes Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Clash+Display:wght@400;600;700&family=Outfit:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070810;
+  --panel:#0d0e1a;
+  --panel2:#111322;
+  --border:#1a1d2e;
+  --l-color:#fb923c;
+  --r-color:#818cf8;
+  --zero-color:#ef4444;
+  --nonzero:#22d3ee;
+  --swap:#facc15;
+  --done:#4ade80;
+  --text:#e2e8f0;
+  --muted:#4b5563;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Outfit',sans-serif;
+}
+body{
+  background:var(--bg);color:var(--text);font-family:var(--sans);
+  min-height:100vh;padding:32px 16px 80px;
+  background-image:
+    radial-gradient(ellipse 50% 30% at 10% 0%,rgba(251,146,60,.05) 0%,transparent 65%),
+    radial-gradient(ellipse 50% 30% at 90% 0%,rgba(129,140,248,.05) 0%,transparent 65%);
+}
+.page{max-width:1060px;margin:0 auto}
+
+/* ---- Header ---- */
+.hdr{margin-bottom:36px;animation:fadeUp .4s ease forwards}
+.hdr-top{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+.hdr-icon{
+  width:50px;height:50px;border-radius:12px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--l-color),var(--r-color));
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+}
+.hdr h1{font-size:clamp(22px,4vw,36px);font-weight:800;letter-spacing:-1px}
+.hdr p{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:5px}
+.input-strip{
+  display:flex;gap:8px;align-items:center;margin-top:16px;flex-wrap:wrap;
+  background:var(--panel);border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;
+}
+.input-strip label{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+.input-strip input{
+  flex:1;min-width:180px;font-family:var(--mono);font-size:14px;
+  background:transparent;border:none;color:var(--text);outline:none;
+}
+
+/* ---- Controls ---- */
+.ctrl-row{
+  display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:28px;
+  animation:fadeUp .4s ease .1s forwards;opacity:0;
+}
+.btn{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;transition:opacity .15s,transform .1s}
+.btn:hover{opacity:.85;transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn-play{background:linear-gradient(135deg,var(--l-color),var(--r-color));color:#fff}
+.btn-step{background:var(--panel2);color:var(--nonzero);border:1.5px solid var(--nonzero)}
+.btn-reset{background:var(--panel2);color:var(--muted);border:1.5px solid var(--border)}
+.spd-grp{display:flex;align-items:center;gap:6px}
+.spd-lbl{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.spdbtn{font-family:var(--mono);font-size:11px;background:var(--panel2);border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:4px 10px;cursor:pointer;transition:all .15s}
+.spdbtn.on{border-color:var(--nonzero);color:var(--nonzero);background:rgba(34,211,238,.07)}
+
+/* ---- Comparison grid ---- */
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:16px;animation:fadeUp .4s ease .2s forwards;opacity:0}
+@media(max-width:680px){.cmp{grid-template-columns:1fr}}
+
+.vp{background:var(--panel);border:1.5px solid var(--border);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:16px}
+.vp.ap1{border-top:3px solid var(--l-color)}
+.vp.ap2{border-top:3px solid var(--r-color)}
+
+.vp-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:10px}
+.badge1{background:rgba(251,146,60,.12);color:var(--l-color);border:1px solid rgba(251,146,60,.3);font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;letter-spacing:.5px}
+.badge2{background:rgba(129,140,248,.12);color:var(--r-color);border:1px solid rgba(129,140,248,.3);font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;letter-spacing:.5px}
+
+/* Array display */
+.arr-wrap{display:flex;flex-direction:column;gap:6px}
+.arr-lbl{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
+.arr-stage{display:flex;gap:6px;flex-wrap:wrap;min-height:88px;align-items:flex-end}
+.cw{display:flex;flex-direction:column;align-items:center;gap:4px}
+.cell{
+  width:52px;height:52px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:20px;font-weight:700;
+  border:2px solid var(--border);background:var(--panel2);color:var(--text);
+  transition:all .28s ease;
+}
+.cell.cz{border-color:var(--zero-color);background:rgba(239,68,68,.1);color:var(--zero-color);box-shadow:0 0 14px rgba(239,68,68,.18)}
+.cell.cl{border-color:var(--l-color);background:rgba(251,146,60,.1);color:var(--l-color);box-shadow:0 0 14px rgba(251,146,60,.18)}
+.cell.cr{border-color:var(--r-color);background:rgba(129,140,248,.1);color:var(--r-color);box-shadow:0 0 14px rgba(129,140,248,.18)}
+.cell.cswap{border-color:var(--swap);background:rgba(250,204,21,.1);color:var(--swap);box-shadow:0 0 18px rgba(250,204,21,.25);animation:pop .35s ease}
+.cell.cdone{border-color:var(--done);background:rgba(74,222,128,.08);color:var(--done)}
+.cell.cnz{border-color:var(--nonzero);background:rgba(34,211,238,.07);color:var(--nonzero)}
+@keyframes pop{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+
+.pa{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;white-space:nowrap}
+.pa-l{background:rgba(251,146,60,.15);color:var(--l-color)}
+.pa-r{background:rgba(129,140,248,.15);color:var(--r-color)}
+.pa-empty{visibility:hidden}
+.cidx{font-family:var(--mono);font-size:8px;color:var(--muted)}
+
+/* Status */
+.status{
+  background:var(--panel2);border-radius:8px;padding:11px 14px;
+  font-family:var(--mono);font-size:12px;line-height:1.65;
+  min-height:50px;border:1px solid var(--border);color:var(--text);
+}
+.hl{color:var(--l-color);font-weight:700}
+.hr{color:var(--r-color);font-weight:700}
+.hz{color:var(--zero-color);font-weight:700}
+.hs{color:var(--swap);font-weight:700}
+.hd{color:var(--done);font-weight:700}
+.hn{color:var(--nonzero);font-weight:700}
+
+/* Legend */
+.legend{display:flex;gap:10px;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--muted)}
+.ldot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+
+/* Ops counter */
+.ops-row{display:flex;gap:10px}
+.ops-chip{
+  font-family:var(--mono);font-size:11px;
+  background:var(--panel2);border:1px solid var(--border);
+  border-radius:6px;padding:5px 12px;
+}
+.ops-chip span{color:var(--muted);margin-right:4px}
+.ops-chip strong{color:var(--swap)}
+
+/* Progress */
+.prog-row{display:flex;align-items:center;gap:10px}
+.prog-lbl{font-family:var(--mono);font-size:10px;color:var(--muted);white-space:nowrap}
+.prog-track{flex:1;height:3px;background:var(--border);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;transition:width .3s ease}
+.pf1{background:linear-gradient(90deg,var(--l-color),var(--swap))}
+.pf2{background:linear-gradient(90deg,var(--r-color),var(--done))}
+
+/* Code block */
+.code-wrap{
+  background:var(--panel);border:1.5px solid var(--border);border-radius:16px;
+  padding:20px;margin-top:16px;
+  animation:fadeUp .4s ease .3s forwards;opacity:0;
+}
+.code-wrap h3{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:12px;font-family:var(--mono);letter-spacing:.5px}
+.code-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:680px){.code-cols{grid-template-columns:1fr}}
+.code-block{
+  background:#050609;border-radius:8px;padding:16px;
+  font-family:var(--mono);font-size:11.5px;line-height:1.85;
+  color:#9aa5b4;overflow-x:auto;border:1px solid var(--border);
+}
+.ck{color:#f97583}.cf{color:#79b8ff}.cc{color:#2e3f50;font-style:italic}.cv{color:#ffea7f}.co{color:#f8f8f2}
+.code-block .active-line{background:rgba(250,204,21,.06);border-left:2px solid var(--swap);padding-left:6px;margin-left:-6px;display:block}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-top">
+      <div class="hdr-icon">0→</div>
+      <div>
+        <h1>Move Zeroes Visualizer</h1>
+        <p>Two Approaches · Side-by-Side · Step-by-Step</p>
+      </div>
+    </div>
+    <div class="input-strip">
+      <label>Array:</label>
+      <input type="text" id="arrInput" value="0, 1, 0, 3, 12"/>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="ctrl-row">
+    <button class="btn btn-play" onclick="startAuto()">▶ Auto Play</button>
+    <button class="btn btn-step" onclick="stepFwd()">Step →</button>
+    <button class="btn btn-reset" onclick="resetAll()">↺ Reset</button>
+    <div class="spd-grp">
+      <span class="spd-lbl">Speed:</span>
+      <button class="spdbtn" onclick="setSpd(1200)" id="ss">Slow</button>
+      <button class="spdbtn on" onclick="setSpd(700)" id="sm">Normal</button>
+      <button class="spdbtn" onclick="setSpd(200)" id="sf">Fast</button>
+    </div>
+  </div>
+
+  <!-- Comparison -->
+  <div class="cmp">
+
+    <!-- Approach 1: Two Pointer from ends -->
+    <div class="vp ap1">
+      <div class="vp-title">
+        <span class="badge1">APPROACH 1</span>
+        <span style="color:var(--l-color)">Left ↔ Right (from ends)</span>
+      </div>
+      <div class="legend">
+        <div class="leg"><div class="ldot" style="background:var(--l-color)"></div>left ptr</div>
+        <div class="leg"><div class="ldot" style="background:var(--r-color)"></div>right ptr</div>
+        <div class="leg"><div class="ldot" style="background:var(--zero-color)"></div>zero</div>
+        <div class="leg"><div class="ldot" style="background:var(--swap)"></div>swapped</div>
+      </div>
+      <div class="arr-wrap">
+        <div class="arr-lbl">Array state</div>
+        <div class="arr-stage" id="arr1"></div>
+      </div>
+      <div class="status" id="status1">Press Play or Step to begin.</div>
+      <div class="ops-row">
+        <div class="ops-chip"><span>swaps:</span><strong id="swaps1">0</strong></div>
+        <div class="ops-chip"><span>moves:</span><strong id="moves1">0</strong></div>
+      </div>
+      <div class="prog-row">
+        <span class="prog-lbl" id="plbl1">0 / 0</span>
+        <div class="prog-track"><div class="prog-fill pf1" id="pfill1" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- Approach 2: Fast-slow pointer -->
+    <div class="vp ap2">
+      <div class="vp-title">
+        <span class="badge2">APPROACH 2</span>
+        <span style="color:var(--r-color)">Fast & Slow (left anchored)</span>
+      </div>
+      <div class="legend">
+        <div class="leg"><div class="ldot" style="background:var(--l-color)"></div>left (slow)</div>
+        <div class="leg"><div class="ldot" style="background:var(--r-color)"></div>right (fast)</div>
+        <div class="leg"><div class="ldot" style="background:var(--zero-color)"></div>zero</div>
+        <div class="leg"><div class="ldot" style="background:var(--swap)"></div>swapped</div>
+      </div>
+      <div class="arr-wrap">
+        <div class="arr-lbl">Array state</div>
+        <div class="arr-stage" id="arr2"></div>
+      </div>
+      <div class="status" id="status2">Press Play or Step to begin.</div>
+      <div class="ops-row">
+        <div class="ops-chip"><span>swaps:</span><strong id="swaps2">0</strong></div>
+        <div class="ops-chip"><span>moves:</span><strong id="moves2">0</strong></div>
+      </div>
+      <div class="prog-row">
+        <span class="prog-lbl" id="plbl2">0 / 0</span>
+        <div class="prog-track"><div class="prog-fill pf2" id="pfill2" style="width:0%"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Code -->
+  <div class="code-wrap">
+    <h3>// CODE — highlighted line follows current step</h3>
+    <div class="code-cols">
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--l-color);margin-bottom:6px;letter-spacing:1px">APPROACH 1 — Two Pointers from ends</div>
+        <div class="code-block" id="code1">
+<span id="cl0"><span class="ck">function</span> <span class="cf">moveZeroes</span>(arr) {</span>
+<span id="cl1">  <span class="ck">let</span> <span class="cv">left</span> = <span class="co">0</span>;</span>
+<span id="cl2">  <span class="ck">let</span> <span class="cv">right</span> = arr.length - <span class="co">1</span>;</span>
+<span id="cl3">  <span class="ck">while</span> (<span class="cv">left</span> &lt; <span class="cv">right</span>) {</span>
+<span id="cl4">    <span class="ck">if</span> (arr[<span class="cv">right</span>] !== <span class="co">0</span>) {</span>
+<span id="cl5">      [arr[<span class="cv">left</span>], arr[<span class="cv">right</span>]] =</span>
+<span id="cl5b">        [arr[<span class="cv">right</span>], arr[<span class="cv">left</span>]];</span>
+<span id="cl6">      <span class="cv">left</span>++;</span>
+<span id="cl7">    } <span class="ck">else</span> {</span>
+<span id="cl8">      <span class="cv">right</span>--;</span>
+<span id="cl9">    }</span>
+<span id="cl10">  }</span>
+<span id="cl11">  <span class="ck">return</span> arr;</span>
+<span>}</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--r-color);margin-bottom:6px;letter-spacing:1px">APPROACH 2 — Fast &amp; Slow Pointer</div>
+        <div class="code-block" id="code2">
+<span id="c2l0"><span class="ck">function</span> <span class="cf">moveZeroes</span>(arr) {</span>
+<span id="c2l1">  <span class="ck">let</span> <span class="cv">left</span> = <span class="co">0</span>;</span>
+<span id="c2l2">  <span class="ck">for</span> (<span class="ck">let</span> <span class="cv">right</span> = <span class="co">0</span>;</span>
+<span id="c2l2b">       <span class="cv">right</span> &lt; arr.length; <span class="cv">right</span>++) {</span>
+<span id="c2l3">    <span class="ck">if</span> (arr[<span class="cv">right</span>] !== <span class="co">0</span>) {</span>
+<span id="c2l4">      [arr[<span class="cv">left</span>], arr[<span class="cv">right</span>]] =</span>
+<span id="c2l4b">        [arr[<span class="cv">right</span>], arr[<span class="cv">left</span>]];</span>
+<span id="c2l5">      <span class="cv">left</span>++;</span>
+<span id="c2l6">    }</span>
+<span id="c2l7">  }</span>
+<span id="c2l8">  <span class="ck">return</span> arr;</span>
+<span>}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── STEP GENERATOR — Approach 1 (two ends) ──────────────────
+function genSteps1(orig) {
+  const arr = [...orig];
+  const s = [];
+  let left = 0, right = arr.length - 1;
+  let swaps = 0, moves = 0;
+
+  s.push({ arr:[...arr], left, right, msg:`Init: <span class="hl">left=0</span>, <span class="hr">right=${right}</span>. Swap mode from both ends.`, swaps, moves, codeLine:'cl1', swap:false });
+
+  while (left < right) {
+    moves++;
+    if (arr[right] !== 0) {
+      s.push({ arr:[...arr], left, right, msg:`arr[<span class="hr">right=${right}</span>] = <span class="hn">${arr[right]}</span> (non-zero) → swap with arr[<span class="hl">left=${left}</span>]=${arr[left]}.`, swaps, moves, codeLine:'cl4', swap:false });
+      [arr[left], arr[right]] = [arr[right], arr[left]];
+      swaps++;
+      s.push({ arr:[...arr], left, right, msg:`<span class="hs">Swapped!</span> arr[${left}]=${arr[left]}, arr[${right}]=${arr[right]}. Move <span class="hl">left → ${left+1}</span>.`, swaps, moves, codeLine:'cl5', swap:true, swapIdx:[left,right] });
+      left++;
+    } else {
+      s.push({ arr:[...arr], left, right, msg:`arr[<span class="hr">right=${right}</span>] = <span class="hz">0</span> → skip, move <span class="hr">right → ${right-1}</span>.`, swaps, moves, codeLine:'cl8', swap:false });
+      right--;
+    }
+  }
+  s.push({ arr:[...arr], left:-1, right:-1, msg:`<span class="hd">✓ Done! All zeros moved to end. ${swaps} swap(s), ${moves} move(s).</span>`, swaps, moves, codeLine:'cl11', swap:false, done:true });
+  return s;
+}
+
+// ─── STEP GENERATOR — Approach 2 (fast/slow) ─────────────────
+function genSteps2(orig) {
+  const arr = [...orig];
+  const s = [];
+  let left = 0;
+  let swaps = 0, moves = 0;
+
+  s.push({ arr:[...arr], left, right:0, msg:`Init: <span class="hl">left=0</span>. right (fast) starts at 0 and scans every element.`, swaps, moves, codeLine:'c2l1', swap:false });
+
+  for (let right = 0; right < arr.length; right++) {
+    moves++;
+    s.push({ arr:[...arr], left, right, msg:`right=<span class="hr">${right}</span>: arr[right]=${arr[right] === 0 ? `<span class="hz">0</span>` : `<span class="hn">${arr[right]}</span>`}. Check non-zero?`, swaps, moves, codeLine:'c2l3', swap:false });
+    if (arr[right] !== 0) {
+      [arr[left], arr[right]] = [arr[right], arr[left]];
+      swaps++;
+      s.push({ arr:[...arr], left, right, msg:`<span class="hn">Non-zero!</span> <span class="hs">Swap</span> arr[<span class="hl">left=${left}</span>] ↔ arr[<span class="hr">right=${right}</span>]. Move <span class="hl">left → ${left+1}</span>.`, swaps, moves, codeLine:'c2l4', swap:true, swapIdx:[left,right] });
+      left++;
+    } else {
+      s.push({ arr:[...arr], left, right, msg:`<span class="hz">Zero found</span> at right=${right} → skip. <span class="hl">left stays at ${left}</span>.`, swaps, moves, codeLine:'c2l6', swap:false });
+    }
+  }
+  s.push({ arr:[...arr], left:-1, right:-1, msg:`<span class="hd">✓ Done! Non-zeros up front, zeros at end. ${swaps} swap(s), ${moves} move(s).</span>`, swaps, moves, codeLine:'c2l8', swap:false, done:true });
+  return s;
+}
+
+// ─── RENDER SIDE ─────────────────────────────────────────────
+function renderSide(n, steps, idx) {
+  if (idx < 0 || idx >= steps.length) return;
+  const st = steps[idx];
+  const pfx = `${n}`;
+
+  // Array
+  const stage = document.getElementById(`arr${pfx}`);
+  stage.innerHTML = '';
+  st.arr.forEach((val, i) => {
+    const w = document.createElement('div'); w.className = 'cw';
+    const pa = document.createElement('div');
+    const isL = i === st.left, isR = i === st.right;
+    const isSwap = st.swapIdx && st.swapIdx.includes(i);
+
+    if (isL && isR) { pa.className='pa pa-l'; pa.textContent='L=R'; }
+    else if (isL)   { pa.className='pa pa-l'; pa.textContent='left'; }
+    else if (isR)   { pa.className='pa pa-r'; pa.textContent='right'; }
+    else            { pa.className='pa-empty'; pa.textContent='.'; }
+
+    const cell = document.createElement('div'); cell.className = 'cell';
+    cell.textContent = val;
+
+    if (st.done) { cell.classList.add(val === 0 ? 'cz' : 'cdone'); }
+    else if (isSwap) { cell.classList.add('cswap'); }
+    else if (isL && isR) { cell.classList.add('cl'); }
+    else if (isL) { cell.classList.add('cl'); }
+    else if (isR) { cell.classList.add('cr'); }
+    else if (val === 0) { cell.classList.add('cz'); }
+
+    const ci = document.createElement('div'); ci.className = 'cidx'; ci.textContent = i;
+    w.appendChild(pa); w.appendChild(cell); w.appendChild(ci);
+    stage.appendChild(w);
+  });
+
+  // Status
+  document.getElementById(`status${pfx}`).innerHTML = st.msg;
+
+  // Ops
+  document.getElementById(`swaps${pfx}`).textContent = st.swaps;
+  document.getElementById(`moves${pfx}`).textContent = st.moves;
+
+  // Progress
+  document.getElementById(`plbl${pfx}`).textContent = `${idx+1} / ${steps.length}`;
+  document.getElementById(`pfill${pfx}`).style.width = `${((idx+1)/steps.length)*100}%`;
+
+  // Code highlight
+  highlightCode(n, st.codeLine);
+}
+
+function highlightCode(n, lineId) {
+  const prefix = n === 1 ? 'cl' : 'c2l';
+  const codeEl = document.getElementById(`code${n}`);
+  if (!codeEl) return;
+  codeEl.querySelectorAll('span[id]').forEach(el => el.classList.remove('active-line'));
+  if (lineId) {
+    const el = document.getElementById(lineId);
+    if (el) el.classList.add('active-line');
+    // also highlight companion line
+    const companion = lineId === 'cl5' ? 'cl5b' : lineId === 'c2l4' ? 'c2l4b' : lineId === 'c2l2' ? 'c2l2b' : null;
+    if (companion) { const ce = document.getElementById(companion); if(ce) ce.classList.add('active-line'); }
+  }
+}
+
+// ─── STATE ───────────────────────────────────────────────────
+let steps1=[], steps2=[], cur=-1, timer=null, speed=700;
+
+function parse() {
+  return document.getElementById('arrInput').value
+    .split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+}
+
+function build() {
+  const arr = parse();
+  if (arr.length < 2) { alert('Enter at least 2 numbers.'); return false; }
+  steps1 = genSteps1(arr);
+  steps2 = genSteps2(arr);
+  cur = -1;
+  return true;
+}
+
+function renderBoth(idx) {
+  renderSide(1, steps1, Math.min(idx, steps1.length-1));
+  renderSide(2, steps2, Math.min(idx, steps2.length-1));
+  cur = idx;
+}
+
+function resetAll() {
+  clearTimeout(timer); timer=null;
+  if (!build()) return;
+  renderBoth(0);
+}
+
+function stepFwd() {
+  clearTimeout(timer); timer=null;
+  if (!steps1.length) { if(!build()) return; }
+  const maxL = Math.max(steps1.length, steps2.length);
+  if (cur < maxL-1) renderBoth(cur+1);
+}
+
+function startAuto() {
+  const maxL = Math.max(steps1.length, steps2.length);
+  if (!steps1.length || cur >= maxL-1) { if(!build()) return; renderBoth(0); }
+  clearTimeout(timer);
+  function tick() {
+    const ml = Math.max(steps1.length, steps2.length);
+    if (cur < ml-1) { renderBoth(cur+1); timer = setTimeout(tick, speed); }
+  }
+  timer = setTimeout(tick, speed);
+}
+
+function setSpd(ms) {
+  speed=ms;
+  ['ss','sm','sf'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  if(ms===1200) document.getElementById('ss').classList.add('on');
+  else if(ms===700) document.getElementById('sm').classList.add('on');
+  else document.getElementById('sf').classList.add('on');
+}
+
+window.addEventListener('DOMContentLoaded', () => { build(); renderBoth(0); });
+</script>
+</body>
+</html>

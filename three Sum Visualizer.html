@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Three Sum Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#06070d;
+  --panel:#0d0f1a;
+  --panel2:#111420;
+  --border:#1c2035;
+  --i-color:#ff6b35;
+  --l-color:#00d9ff;
+  --r-color:#a855f7;
+  --found:#22c55e;
+  --skip:#94a3b8;
+  --text:#e2e8f0;
+  --muted:#475569;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Outfit',sans-serif;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  min-height:100vh;
+  padding:32px 16px 80px;
+  background-image:
+    radial-gradient(ellipse 60% 40% at 20% 0%,rgba(255,107,53,0.06) 0%,transparent 70%),
+    radial-gradient(ellipse 50% 40% at 80% 100%,rgba(168,85,247,0.06) 0%,transparent 70%);
+}
+
+.page{max-width:900px;margin:0 auto}
+
+/* ---- Title ---- */
+.title-row{
+  display:flex;align-items:center;gap:16px;margin-bottom:32px;
+  animation:fadeUp .4s ease forwards;
+}
+.title-icon{
+  width:52px;height:52px;border-radius:12px;
+  background:linear-gradient(135deg,var(--i-color),var(--r-color));
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:900;color:#fff;font-family:var(--mono);
+  flex-shrink:0;
+}
+.title-text h1{font-size:clamp(20px,4vw,32px);font-weight:700;letter-spacing:-0.5px}
+.title-text p{font-size:13px;color:var(--muted);font-family:var(--mono);margin-top:3px}
+
+/* ---- Input row ---- */
+.input-row{
+  display:flex;gap:10px;margin-bottom:28px;flex-wrap:wrap;
+  animation:fadeUp .4s ease .1s forwards;opacity:0;
+}
+.input-row input{
+  flex:1;min-width:220px;
+  font-family:var(--mono);font-size:14px;
+  background:var(--panel);border:1.5px solid var(--border);
+  border-radius:8px;padding:10px 14px;color:var(--text);outline:none;
+  transition:border-color .2s;
+}
+.input-row input:focus{border-color:var(--l-color)}
+.btn{
+  font-family:var(--mono);font-size:12px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;
+  border:none;border-radius:8px;padding:10px 20px;cursor:pointer;
+  transition:opacity .15s,transform .1s;
+}
+.btn:hover{opacity:.85;transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn-run{background:linear-gradient(135deg,var(--i-color),#ff9f35);color:#fff}
+.btn-step{background:var(--panel2);color:var(--l-color);border:1.5px solid var(--l-color)}
+.btn-reset{background:var(--panel2);color:var(--muted);border:1.5px solid var(--border)}
+
+/* ---- Main visualizer card ---- */
+.vis-card{
+  background:var(--panel);border:1.5px solid var(--border);
+  border-radius:16px;padding:28px;margin-bottom:20px;
+  animation:fadeUp .4s ease .2s forwards;opacity:0;
+}
+
+.vis-label{
+  font-family:var(--mono);font-size:10px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:14px;
+}
+
+/* Array display */
+.array-stage{
+  display:flex;align-items:flex-end;gap:8px;
+  flex-wrap:wrap;min-height:110px;margin-bottom:8px;
+}
+
+.cell-wrap{
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  transition:transform .3s ease;
+}
+
+.cell{
+  width:56px;height:56px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:20px;font-weight:700;
+  border:2px solid var(--border);
+  background:var(--panel2);color:var(--text);
+  transition:all .3s ease;
+  position:relative;
+}
+
+.cell.ptr-i{
+  border-color:var(--i-color);
+  background:rgba(255,107,53,.12);
+  color:var(--i-color);
+  box-shadow:0 0 20px rgba(255,107,53,.2);
+}
+.cell.ptr-l{
+  border-color:var(--l-color);
+  background:rgba(0,217,255,.1);
+  color:var(--l-color);
+  box-shadow:0 0 20px rgba(0,217,255,.15);
+}
+.cell.ptr-r{
+  border-color:var(--r-color);
+  background:rgba(168,85,247,.1);
+  color:var(--r-color);
+  box-shadow:0 0 20px rgba(168,85,247,.15);
+}
+.cell.found{
+  border-color:var(--found);
+  background:rgba(34,197,94,.12);
+  color:var(--found);
+  box-shadow:0 0 24px rgba(34,197,94,.25);
+  animation:pulse .5s ease;
+}
+.cell.skip-dup{
+  opacity:.35;
+}
+
+@keyframes pulse{
+  0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}
+}
+
+.ptr-arrow{
+  font-family:var(--mono);font-size:10px;font-weight:700;
+  padding:2px 7px;border-radius:4px;letter-spacing:.5px;
+}
+.arrow-i{background:rgba(255,107,53,.15);color:var(--i-color)}
+.arrow-l{background:rgba(0,217,255,.12);color:var(--l-color)}
+.arrow-r{background:rgba(168,85,247,.12);color:var(--r-color)}
+.arrow-empty{visibility:hidden;font-size:10px;padding:2px 7px}
+
+/* idx under cell */
+.cell-idx{
+  font-family:var(--mono);font-size:9px;color:var(--muted);
+}
+
+/* ---- Status bar ---- */
+.status-bar{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  background:var(--panel2);border-radius:10px;padding:14px 18px;
+  margin-top:20px;border:1px solid var(--border);
+  min-height:52px;
+}
+.status-msg{
+  font-family:var(--mono);font-size:13px;color:var(--text);flex:1;line-height:1.5;
+}
+.status-msg .hl-i{color:var(--i-color);font-weight:700}
+.status-msg .hl-l{color:var(--l-color);font-weight:700}
+.status-msg .hl-r{color:var(--r-color);font-weight:700}
+.status-msg .hl-found{color:var(--found);font-weight:700}
+
+.sum-badge{
+  font-family:var(--mono);font-size:13px;font-weight:700;
+  padding:5px 14px;border-radius:6px;white-space:nowrap;
+}
+.sum-zero{background:rgba(34,197,94,.15);color:var(--found);border:1px solid rgba(34,197,94,.3)}
+.sum-neg {background:rgba(0,217,255,.1);color:var(--l-color);border:1px solid rgba(0,217,255,.2)}
+.sum-pos {background:rgba(168,85,247,.1);color:var(--r-color);border:1px solid rgba(168,85,247,.2)}
+.sum-na  {background:var(--panel);color:var(--muted);border:1px solid var(--border)}
+
+/* ---- Progress ---- */
+.progress-row{
+  display:flex;align-items:center;gap:12px;margin-top:16px;
+}
+.step-counter{
+  font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap;
+}
+.progress-track{
+  flex:1;height:3px;background:var(--border);border-radius:99px;overflow:hidden;
+}
+.progress-fill{
+  height:100%;background:linear-gradient(90deg,var(--i-color),var(--r-color));
+  border-radius:99px;transition:width .3s ease;
+}
+
+/* ---- Found triplets ---- */
+.found-card{
+  background:var(--panel);border:1.5px solid var(--border);
+  border-radius:16px;padding:24px 28px;margin-bottom:20px;
+  animation:fadeUp .4s ease .3s forwards;opacity:0;
+}
+.found-grid{display:flex;gap:10px;flex-wrap:wrap;min-height:36px}
+.triplet-chip{
+  font-family:var(--mono);font-size:13px;font-weight:600;
+  background:rgba(34,197,94,.1);color:var(--found);
+  border:1.5px solid rgba(34,197,94,.3);
+  border-radius:8px;padding:6px 14px;
+  animation:popIn .3s ease;
+}
+@keyframes popIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.no-triplets{font-family:var(--mono);font-size:12px;color:var(--muted);font-style:italic}
+
+/* ---- Legend ---- */
+.legend{
+  display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;
+  animation:fadeUp .4s ease .35s forwards;opacity:0;
+}
+.leg-item{
+  display:flex;align-items:center;gap:7px;
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+}
+.leg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* ---- Speed control ---- */
+.controls-row{
+  display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:8px;
+}
+.speed-label{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.speed-btn{
+  font-family:var(--mono);font-size:11px;
+  background:var(--panel2);border:1px solid var(--border);
+  color:var(--muted);border-radius:5px;padding:4px 10px;cursor:pointer;
+  transition:all .15s;
+}
+.speed-btn.active{border-color:var(--l-color);color:var(--l-color);background:rgba(0,217,255,.07)}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(14px)}
+  to{opacity:1;transform:translateY(0)}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Title -->
+  <div class="title-row">
+    <div class="title-icon">3∑</div>
+    <div class="title-text">
+      <h1>Three Sum Visualizer</h1>
+      <p>Two Pointer · Step-by-step · Interactive</p>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="input-row">
+    <input type="text" id="arrInput" value="-1, 0, 1, 2, -1, -4" placeholder="Enter integers separated by commas"/>
+    <button class="btn btn-run" onclick="startAuto()">▶ Auto Play</button>
+    <button class="btn btn-step" onclick="stepForward()">Step →</button>
+    <button class="btn btn-reset" onclick="resetVis()">↺ Reset</button>
+  </div>
+
+  <!-- Speed -->
+  <div class="controls-row">
+    <span class="speed-label">Speed:</span>
+    <button class="speed-btn" onclick="setSpeed(1200)" id="sp-slow">Slow</button>
+    <button class="speed-btn active" onclick="setSpeed(600)" id="sp-med">Normal</button>
+    <button class="speed-btn" onclick="setSpeed(200)" id="sp-fast">Fast</button>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:var(--i-color)"></div> i (fixed)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--l-color)"></div> left pointer</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--r-color)"></div> right pointer</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--found)"></div> triplet found</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--border)"></div> skipped (dup)</div>
+  </div>
+
+  <!-- Visualizer -->
+  <div class="vis-card">
+    <div class="vis-label">Array State</div>
+    <div class="array-stage" id="arrayStage"></div>
+    <div class="status-bar">
+      <div class="status-msg" id="statusMsg">Press Auto Play or Step → to begin.</div>
+      <div class="sum-badge sum-na" id="sumBadge">sum = ?</div>
+    </div>
+    <div class="progress-row">
+      <span class="step-counter" id="stepCounter">0 / 0</span>
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- Found triplets -->
+  <div class="found-card">
+    <div class="vis-label" style="margin-bottom:12px">Triplets Found (sum = 0)</div>
+    <div class="found-grid" id="foundGrid">
+      <span class="no-triplets">None yet…</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let steps = [];
+let currentStep = -1;
+let autoTimer = null;
+let speed = 600;
+let nums = [];
+
+// ============================================================
+// GENERATE ALL STEPS
+// ============================================================
+function generateSteps(arr) {
+  const s = [];
+  const sorted = [...arr].sort((a, b) => a - b);
+  const n = sorted.length;
+  const found = [];
+
+  s.push({ type:'init', arr: sorted, msg: `Array sorted → <span class="hl-i">[${sorted.join(', ')}]</span>. Starting outer loop.`, i:-1, left:-1, right:-1, sum:null, found:[], highlights:[] });
+
+  for (let i = 0; i < n - 2; i++) {
+
+    if (i > 0 && sorted[i] === sorted[i - 1]) {
+      s.push({ type:'skip-i', arr:sorted, msg:`Skip duplicate <span class="hl-i">i=${i}</span> (nums[${i}]=${sorted[i]} = nums[${i-1}]=${sorted[i-1]})`, i, left:-1, right:-1, sum:null, found:[...found], skips:[i] });
+      continue;
+    }
+
+    s.push({ type:'fix-i', arr:sorted, msg:`Fix <span class="hl-i">i=${i}</span> (val=${sorted[i]}). Set <span class="hl-l">left=${i+1}</span>, <span class="hl-r">right=${n-1}</span>.`, i, left:i+1, right:n-1, sum:null, found:[...found], skips:[] });
+
+    let left = i + 1;
+    let right = n - 1;
+
+    while (left < right) {
+      const sum = sorted[i] + sorted[left] + sorted[right];
+
+      s.push({ type:'check', arr:sorted, msg:`<span class="hl-i">nums[${i}]=${sorted[i]}</span> + <span class="hl-l">nums[${left}]=${sorted[left]}</span> + <span class="hl-r">nums[${right}]=${sorted[right]}</span> = ${sum}`, i, left, right, sum, found:[...found], skips:[] });
+
+      if (sum === 0) {
+        found.push([sorted[i], sorted[left], sorted[right]]);
+        s.push({ type:'found', arr:sorted, msg:`<span class="hl-found">✓ Triplet [${sorted[i]}, ${sorted[left]}, ${sorted[right]}] found!</span> Skipping duplicates…`, i, left, right, sum:0, found:[...found], skips:[] });
+
+        // skip dup left
+        const dupSkipsL = [];
+        while (left < right && sorted[left] === sorted[left + 1]) { dupSkipsL.push(left); left++; }
+        const dupSkipsR = [];
+        while (left < right && sorted[right] === sorted[right - 1]) { dupSkipsR.push(right); right--; }
+
+        if (dupSkipsL.length || dupSkipsR.length) {
+          s.push({ type:'skip-dup', arr:sorted, msg:`Skip duplicate values at left/right pointers.`, i, left, right, sum:0, found:[...found], skips:[...dupSkipsL,...dupSkipsR] });
+        }
+
+        left++; right--;
+        if (left < right) {
+          s.push({ type:'move', arr:sorted, msg:`Move both: <span class="hl-l">left → ${left}</span>, <span class="hl-r">right → ${right}</span>.`, i, left, right, sum:null, found:[...found], skips:[] });
+        }
+
+      } else if (sum < 0) {
+        left++;
+        s.push({ type:'move-l', arr:sorted, msg:`Sum ${sum} &lt; 0 → need bigger. Move <span class="hl-l">left → ${left}</span>.`, i, left, right, sum, found:[...found], skips:[] });
+      } else {
+        right--;
+        s.push({ type:'move-r', arr:sorted, msg:`Sum ${sum} &gt; 0 → need smaller. Move <span class="hl-r">right → ${right}</span>.`, i, left, right, sum, found:[...found], skips:[] });
+      }
+    }
+  }
+
+  s.push({ type:'done', arr:sorted, msg:`<span class="hl-found">✓ Complete!</span> Found ${found.length} unique triplet${found.length!==1?'s':''}.`, i:-1, left:-1, right:-1, sum:null, found:[...found], skips:[] });
+  return s;
+}
+
+// ============================================================
+// RENDER STEP
+// ============================================================
+function renderStep(idx) {
+  if (idx < 0 || idx >= steps.length) return;
+  currentStep = idx;
+  const st = steps[idx];
+  const n = st.arr.length;
+
+  // Progress
+  document.getElementById('stepCounter').textContent = `${idx + 1} / ${steps.length}`;
+  document.getElementById('progressFill').style.width = `${((idx + 1) / steps.length) * 100}%`;
+
+  // Array cells
+  const stage = document.getElementById('arrayStage');
+  stage.innerHTML = '';
+
+  st.arr.forEach((val, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'cell-wrap';
+
+    // pointer arrow on top
+    const arrow = document.createElement('div');
+    if (i === st.i) { arrow.className = 'ptr-arrow arrow-i'; arrow.textContent = 'i'; }
+    else if (i === st.left) { arrow.className = 'ptr-arrow arrow-l'; arrow.textContent = 'L'; }
+    else if (i === st.right) { arrow.className = 'ptr-arrow arrow-r'; arrow.textContent = 'R'; }
+    else { arrow.className = 'arrow-empty'; arrow.textContent = '·'; }
+
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.textContent = val;
+
+    if (st.type === 'found' && (i === st.i || i === st.left || i === st.right)) {
+      cell.classList.add('found');
+    } else if (i === st.i) {
+      cell.classList.add('ptr-i');
+    } else if (i === st.left) {
+      cell.classList.add('ptr-l');
+    } else if (i === st.right) {
+      cell.classList.add('ptr-r');
+    } else if (st.skips && st.skips.includes(i)) {
+      cell.classList.add('skip-dup');
+    }
+
+    const idxLabel = document.createElement('div');
+    idxLabel.className = 'cell-idx';
+    idxLabel.textContent = i;
+
+    wrap.appendChild(arrow);
+    wrap.appendChild(cell);
+    wrap.appendChild(idxLabel);
+    stage.appendChild(wrap);
+  });
+
+  // Status message
+  document.getElementById('statusMsg').innerHTML = st.msg;
+
+  // Sum badge
+  const sb = document.getElementById('sumBadge');
+  if (st.sum === null) { sb.className = 'sum-badge sum-na'; sb.textContent = 'sum = ?'; }
+  else if (st.sum === 0) { sb.className = 'sum-badge sum-zero'; sb.textContent = `sum = 0 ✓`; }
+  else if (st.sum < 0) { sb.className = 'sum-badge sum-neg'; sb.textContent = `sum = ${st.sum} < 0`; }
+  else { sb.className = 'sum-badge sum-pos'; sb.textContent = `sum = ${st.sum} > 0`; }
+
+  // Found triplets
+  const grid = document.getElementById('foundGrid');
+  grid.innerHTML = '';
+  if (st.found.length === 0) {
+    grid.innerHTML = '<span class="no-triplets">None yet…</span>';
+  } else {
+    st.found.forEach(t => {
+      const chip = document.createElement('div');
+      chip.className = 'triplet-chip';
+      chip.textContent = `[${t.join(', ')}]`;
+      grid.appendChild(chip);
+    });
+  }
+}
+
+// ============================================================
+// CONTROLS
+// ============================================================
+function buildSteps() {
+  const raw = document.getElementById('arrInput').value;
+  nums = raw.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+  if (nums.length < 3) { alert('Please enter at least 3 integers.'); return false; }
+  steps = generateSteps(nums);
+  currentStep = -1;
+  return true;
+}
+
+function resetVis() {
+  clearTimeout(autoTimer);
+  autoTimer = null;
+  if (!buildSteps()) return;
+  renderStep(0);
+}
+
+function stepForward() {
+  clearTimeout(autoTimer);
+  autoTimer = null;
+  if (steps.length === 0) { if (!buildSteps()) return; }
+  const next = currentStep + 1;
+  if (next < steps.length) renderStep(next);
+}
+
+function startAuto() {
+  if (steps.length === 0 || currentStep >= steps.length - 1) {
+    if (!buildSteps()) return;
+    renderStep(0);
+  }
+  clearTimeout(autoTimer);
+  function tick() {
+    const next = currentStep + 1;
+    if (next < steps.length) {
+      renderStep(next);
+      autoTimer = setTimeout(tick, speed);
+    }
+  }
+  autoTimer = setTimeout(tick, speed);
+}
+
+function setSpeed(ms) {
+  speed = ms;
+  document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+  if (ms === 1200) document.getElementById('sp-slow').classList.add('active');
+  else if (ms === 600) document.getElementById('sp-med').classList.add('active');
+  else document.getElementById('sp-fast').classList.add('active');
+}
+
+// Init on load
+window.addEventListener('DOMContentLoaded', () => {
+  buildSteps();
+  renderStep(0);
+});
+</script>
+</body>
+</html>
