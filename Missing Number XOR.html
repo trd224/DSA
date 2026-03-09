@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Missing Number — XOR Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#020308;
+  --s1:#06080f;
+  --s2:#090c16;
+  --bd:#10162a;
+  --bd2:#182040;
+  --xor:#00ff88;    /* XOR result  – neon green */
+  --idx:#38bdf8;    /* index vals  – cyan       */
+  --num:#fb923c;    /* array nums  – orange     */
+  --cur:#fbbf24;    /* current     – amber      */
+  --mis:#ff3d71;    /* missing     – hot pink   */
+  --bit1:#a78bfa;   /* bit 1       – violet     */
+  --bit0:#1e2540;   /* bit 0       – dark blue  */
+  --text:#c8d8f0;
+  --muted:#2a3850;
+  --muted2:#4a5878;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Space Grotesk',sans-serif;
+}
+body{
+  background:var(--bg);color:var(--text);font-family:var(--sans);
+  min-height:100vh;padding:36px 16px 80px;
+  background-image:
+    radial-gradient(ellipse 60% 40% at 50% -10%, rgba(0,255,136,.05) 0%,transparent 65%),
+    radial-gradient(ellipse 40% 30% at 90% 80%, rgba(56,189,248,.04) 0%,transparent 60%);
+}
+.page{max-width:960px;margin:0 auto}
+
+/* ── Header ── */
+.hdr{margin-bottom:32px;animation:up .45s ease forwards}
+.tag-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.tag{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:3px 10px;border-radius:3px;border:1px solid}
+.te{color:#f97316;border-color:rgba(249,115,22,.3);background:rgba(249,115,22,.05)}
+.tx{color:var(--xor);border-color:rgba(0,255,136,.3);background:rgba(0,255,136,.04)}
+.ta{color:var(--idx);border-color:rgba(56,189,248,.3);background:rgba(56,189,248,.04)}
+h1{font-size:clamp(28px,5.5vw,56px);font-weight:700;letter-spacing:-1.5px;line-height:.95}
+h1 .x{color:var(--xor);font-family:var(--mono)}
+h1 .m{color:var(--mis)}
+.sub{font-family:var(--mono);font-size:11px;color:var(--muted2);margin-top:10px}
+
+/* ── Controls ── */
+.top-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:22px;animation:up .45s ease .1s forwards;opacity:0}
+.in-box{display:flex;align-items:center;gap:8px;background:var(--s1);border:1.5px solid var(--bd2);border-radius:8px;padding:8px 14px;flex:1;min-width:200px}
+.in-box label{font-family:var(--mono);font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:2px;white-space:nowrap}
+.in-box input{flex:1;font-family:var(--mono);font-size:14px;background:transparent;border:none;color:var(--text);outline:none}
+.btn{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border:none;border-radius:7px;padding:10px 18px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{transform:translateY(-1px);opacity:.85}
+.btn-play{background:linear-gradient(135deg,var(--xor),var(--idx));color:#000;font-weight:800}
+.btn-step{background:var(--s2);color:var(--cur);border:1.5px solid var(--cur)}
+.btn-rst{background:var(--s2);color:var(--muted2);border:1.5px solid var(--bd2)}
+.spd-row{display:flex;align-items:center;gap:5px}
+.spd-lbl{font-family:var(--mono);font-size:9px;color:var(--muted2)}
+.sb{font-family:var(--mono);font-size:10px;background:var(--s2);border:1px solid var(--bd2);color:var(--muted2);border-radius:4px;padding:4px 9px;cursor:pointer;transition:all .15s}
+.sb.on{border-color:var(--xor);color:var(--xor)}
+
+/* ── XOR running value ── */
+.xor-hero{
+  display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+  background:var(--s1);border:1.5px solid var(--bd2);border-radius:14px;
+  padding:22px 28px;margin-bottom:16px;
+  animation:up .45s ease .15s forwards;opacity:0;
+}
+.xor-big{
+  font-family:var(--mono);font-size:56px;font-weight:700;
+  color:var(--xor);line-height:1;transition:all .3s;
+  text-shadow:0 0 30px rgba(0,255,136,.4);
+  min-width:80px;text-align:center;
+}
+.xor-big.flash{animation:flash .4s ease}
+@keyframes flash{0%,100%{opacity:1}50%{opacity:.3;transform:scale(1.1)}}
+.xor-meta{display:flex;flex-direction:column;gap:8px}
+.xor-label{font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:2px;text-transform:uppercase}
+.xor-bin{
+  font-family:var(--mono);font-size:18px;font-weight:600;
+  color:var(--text);letter-spacing:4px;
+}
+.xor-eq{font-family:var(--mono);font-size:12px;color:var(--muted2);margin-top:4px}
+
+/* ── Phase indicator ── */
+.phase-row{
+  display:flex;gap:0;background:var(--s1);border:1.5px solid var(--bd2);border-radius:10px;padding:4px;
+  margin-bottom:16px;animation:up .45s ease .2s forwards;opacity:0;
+}
+.phase{flex:1;padding:9px 8px;border-radius:7px;text-align:center;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.3px;color:var(--muted2);transition:all .3s;border:1px solid transparent}
+.ph-idx.on{background:rgba(56,189,248,.1);color:var(--idx);border-color:rgba(56,189,248,.25)}
+.ph-num.on{background:rgba(251,146,60,.08);color:var(--num);border-color:rgba(251,146,60,.2)}
+.ph-done.on{background:rgba(255,61,113,.1);color:var(--mis);border-color:rgba(255,61,113,.25)}
+
+/* ── Bit table ── */
+.bit-card{
+  background:var(--s1);border:1.5px solid var(--bd2);border-radius:14px;
+  padding:22px 24px;margin-bottom:16px;
+  animation:up .45s ease .22s forwards;opacity:0;overflow-x:auto;
+}
+.bit-table{display:flex;flex-direction:column;gap:8px;min-width:fit-content}
+.bt-row{display:flex;align-items:center;gap:6px}
+.bt-label{
+  font-family:var(--mono);font-size:10px;font-weight:600;
+  width:100px;flex-shrink:0;text-align:right;padding-right:12px;
+}
+.bt-label.lbl-idx{color:var(--idx)}
+.bt-label.lbl-num{color:var(--num)}
+.bt-label.lbl-xor{color:var(--xor)}
+.bt-label.lbl-cur{color:var(--cur)}
+.bt-label.lbl-mis{color:var(--mis)}
+
+.bit{
+  width:36px;height:36px;border-radius:6px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:14px;font-weight:700;
+  border:1.5px solid var(--bd);background:var(--muted);color:var(--bg);
+  transition:all .3s ease;
+}
+.bit.b1{background:var(--bit1);border-color:var(--bit1);color:#fff;box-shadow:0 0 10px rgba(167,139,250,.3)}
+.bit.b0{background:var(--bit0);border-color:var(--bd2);color:var(--muted2)}
+.bit.bx{background:rgba(0,255,136,.15);border-color:var(--xor);color:var(--xor);box-shadow:0 0 12px rgba(0,255,136,.25)}
+.bit.bc{border-color:var(--cur);background:rgba(251,191,36,.12);color:var(--cur);animation:bitpop .4s ease}
+.bit.bm{border-color:var(--mis);background:rgba(255,61,113,.12);color:var(--mis);box-shadow:0 0 14px rgba(255,61,113,.3);animation:bitpop .4s ease}
+@keyframes bitpop{from{transform:scale(.7);opacity:.3}to{transform:scale(1);opacity:1}}
+.bit-pos-lbl{width:36px;font-family:var(--mono);font-size:8px;color:var(--muted2);text-align:center;flex-shrink:0}
+.sep-line{height:1.5px;background:var(--bd2);margin:2px 0 2px 106px}
+
+/* ── Array display ── */
+.arr-card{
+  background:var(--s1);border:1.5px solid var(--bd2);border-radius:14px;
+  padding:22px 24px;margin-bottom:16px;
+  animation:up .45s ease .25s forwards;opacity:0;overflow-x:auto;
+}
+.arr-row{display:flex;gap:8px;flex-wrap:nowrap;min-width:fit-content;margin-bottom:12px}
+.cw{display:flex;flex-direction:column;align-items:center;gap:5px}
+.cell{
+  width:60px;height:60px;border-radius:10px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:20px;font-weight:700;
+  border:2px solid var(--bd);background:var(--s2);color:var(--muted2);
+  transition:all .3s ease;position:relative;gap:2px;
+}
+.cell .cidx{font-size:8px;font-weight:400;color:var(--muted2)}
+.cell.cidx-active{border-color:var(--idx);background:rgba(56,189,248,.08);color:var(--idx);box-shadow:0 0 18px rgba(56,189,248,.18);animation:cp .6s ease infinite alternate}
+.cell.cnum-active{border-color:var(--num);background:rgba(251,146,60,.08);color:var(--num);box-shadow:0 0 18px rgba(251,146,60,.18);animation:cp .6s ease infinite alternate}
+.cell.cdone{border-color:var(--xor);background:rgba(0,255,136,.06);color:var(--xor)}
+.cell.cmis{border-color:var(--mis);background:rgba(255,61,113,.12);color:var(--mis);box-shadow:0 0 20px rgba(255,61,113,.3);animation:mispulse .7s ease infinite alternate}
+@keyframes cp{from{box-shadow:0 0 8px rgba(56,189,248,.1)}to{box-shadow:0 0 22px rgba(56,189,248,.3)}}
+@keyframes mispulse{from{box-shadow:0 0 12px rgba(255,61,113,.2)}to{box-shadow:0 0 30px rgba(255,61,113,.5)}}
+
+/* row labels on left */
+.arr-label-row{display:flex;gap:8px;flex-wrap:nowrap;min-width:fit-content}
+.arr-seg-lbl{width:60px;flex-shrink:0;font-family:var(--mono);font-size:9px;text-align:center;color:var(--muted2);letter-spacing:1px}
+
+/* ── Status + log ── */
+.bot-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;animation:up .45s ease .3s forwards;opacity:0}
+@media(max-width:620px){.bot-grid{grid-template-columns:1fr}}
+.status-card{background:var(--s1);border:1.5px solid var(--bd2);border-radius:12px;padding:16px 18px;font-family:var(--mono);font-size:12px;line-height:1.75;min-height:72px}
+.hx{color:var(--xor);font-weight:700}
+.hi{color:var(--idx);font-weight:700}
+.hn{color:var(--num);font-weight:700}
+.hm{color:var(--mis);font-weight:700}
+.hc{color:var(--cur);font-weight:700}
+
+.log-card{background:var(--s1);border:1.5px solid var(--bd2);border-radius:12px;padding:16px 18px}
+.log-items{display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto}
+.log-item{font-family:var(--mono);font-size:11px;line-height:1.6;padding:6px 10px;border-radius:5px;border:1px solid var(--bd2);background:var(--s2);animation:logIn .2s ease}
+.log-item.li-idx{border-color:rgba(56,189,248,.2);background:rgba(56,189,248,.04)}
+.log-item.li-num{border-color:rgba(251,146,60,.2);background:rgba(251,146,60,.03)}
+.log-item.li-done{border-color:rgba(255,61,113,.25);background:rgba(255,61,113,.04)}
+@keyframes logIn{from{opacity:0;transform:translateX(-5px)}to{opacity:1;transform:translateX(0)}}
+
+/* ── Code ── */
+.code-card{background:#020108;border:1.5px solid var(--bd2);border-radius:14px;overflow:hidden;animation:up .45s ease .35s forwards;opacity:0}
+.code-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;border-bottom:1px solid var(--bd);background:#010005}
+.code-hdr span{font-family:var(--mono);font-size:11px;color:var(--muted2)}
+.dots{display:flex;gap:5px}.dot{width:9px;height:9px;border-radius:50%}
+pre{padding:22px 24px;font-family:var(--mono);font-size:12.5px;line-height:1.9;color:#3a4a68;overflow-x:auto}
+.kw{color:#c792ea}.fn{color:#82aaff}.vr{color:#ffcb6b}.nm{color:#f78c6c}.cm{color:#1a2438;font-style:italic}
+.cl{display:block;border-radius:3px;padding:0 6px;margin:0 -6px;transition:background .2s}
+.cl.lit-idx{background:rgba(56,189,248,.08);border-left:2px solid var(--idx);padding-left:10px;margin-left:-10px;color:#a8d4f0}
+.cl.lit-num{background:rgba(251,146,60,.07);border-left:2px solid var(--num);padding-left:10px;margin-left:-10px;color:#f0c090}
+.cl.lit-done{background:rgba(0,255,136,.06);border-left:2px solid var(--xor);padding-left:10px;margin-left:-10px;color:#80e8b0}
+
+.prog-row{display:flex;align-items:center;gap:10px;padding:0 24px 14px}
+.prog-lbl{font-family:var(--mono);font-size:10px;color:var(--muted2);white-space:nowrap}
+.prog-track{flex:1;height:3px;background:var(--bd);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--idx),var(--xor));transition:width .3s}
+
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="tag-row">
+      <span class="tag te">Easy</span>
+      <span class="tag tx">XOR / Bit Magic</span>
+      <span class="tag ta">Array · T1</span>
+    </div>
+    <h1><span class="m">Missing</span><br/>Number <span class="x">XOR</span></h1>
+    <p class="sub">XOR all indices 0..n, then XOR all nums. Duplicates cancel → only missing remains.</p>
+  </div>
+
+  <!-- Controls -->
+  <div class="top-bar">
+    <div class="in-box">
+      <label>Array</label>
+      <input id="inArr" value="3, 0, 1"/>
+    </div>
+    <button class="btn btn-play" onclick="startAuto()">▶ Play</button>
+    <button class="btn btn-step" onclick="stepFwd()">Step →</button>
+    <button class="btn btn-rst" onclick="resetAll()">↺</button>
+    <div class="spd-row">
+      <span class="spd-lbl">Speed</span>
+      <button class="sb" onclick="setSpd(1400)" id="ss">Slow</button>
+      <button class="sb on" onclick="setSpd(750)" id="sm">Med</button>
+      <button class="sb" onclick="setSpd(200)" id="sf">Fast</button>
+    </div>
+  </div>
+
+  <!-- XOR hero -->
+  <div class="xor-hero">
+    <div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">XOR Accumulator</div>
+      <div class="xor-big" id="xorBig">0</div>
+    </div>
+    <div class="xor-meta">
+      <div>
+        <div class="xor-label">Binary</div>
+        <div class="xor-bin" id="xorBin">0000</div>
+      </div>
+      <div class="xor-eq" id="xorEq">Waiting…</div>
+    </div>
+  </div>
+
+  <!-- Phase bar -->
+  <div class="phase-row">
+    <div class="phase ph-idx" id="ph0">① XOR indices 0..n</div>
+    <div class="phase ph-num" id="ph1">② XOR array nums</div>
+    <div class="phase ph-done" id="ph2">✓ Missing Found</div>
+  </div>
+
+  <!-- Bit table -->
+  <div class="bit-card">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px">Bit-level XOR Table</div>
+    <div class="bit-table" id="bitTable"></div>
+  </div>
+
+  <!-- Array display -->
+  <div class="arr-card">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Array + Index Reference</div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--idx);letter-spacing:1px;margin-bottom:6px">INDICES (0..n) ↓</div>
+    <div class="arr-row" id="idxRow"></div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--num);letter-spacing:1px;margin:10px 0 6px">ARRAY NUMS ↓</div>
+    <div class="arr-row" id="numRow"></div>
+  </div>
+
+  <!-- Status + log -->
+  <div class="bot-grid">
+    <div class="status-card" id="statusMsg">Press ▶ Play or Step → to begin.</div>
+    <div class="log-card">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">XOR Log</div>
+      <div class="log-items" id="logItems"></div>
+    </div>
+  </div>
+
+  <!-- Code -->
+  <div class="code-card">
+    <div class="code-hdr">
+      <div class="dots">
+        <div class="dot" style="background:#f06060"></div>
+        <div class="dot" style="background:#f0c040"></div>
+        <div class="dot" style="background:#4af0a0"></div>
+      </div>
+      <span>missingNumber.js</span>
+    </div>
+    <pre>
+<span class="cl" id="ln0"><span class="kw">function</span> <span class="fn">missingNumber</span>(nums) {</span>
+<span class="cl" id="ln1">  <span class="kw">let</span> <span class="vr">xor</span> = <span class="nm">0</span>;</span>
+<span class="cl" id="ln2">  <span class="kw">let</span> <span class="vr">n</span>   = nums.length;   <span class="cm">// n = ${n}</span></span>
+<span class="cl" id="ln3"> </span>
+<span class="cl" id="ln4">  <span class="cm">// Pass 1: XOR all indices 0..n</span></span>
+<span class="cl" id="ln5">  <span class="kw">for</span> (<span class="kw">let</span> <span class="vr">i</span> = <span class="nm">0</span>; i &lt;= <span class="vr">n</span>; i++) {</span>
+<span class="cl" id="ln6">    <span class="vr">xor</span> ^= i;   <span class="cm">// XOR with each index</span></span>
+<span class="cl" id="ln7">  }</span>
+<span class="cl" id="ln8"> </span>
+<span class="cl" id="ln9">  <span class="cm">// Pass 2: XOR all array values</span></span>
+<span class="cl" id="ln10">  <span class="kw">for</span> (<span class="kw">let</span> <span class="vr">num</span> <span class="kw">of</span> nums) {</span>
+<span class="cl" id="ln11">    <span class="vr">xor</span> ^= num; <span class="cm">// cancels every num that exists</span></span>
+<span class="cl" id="ln12">  }</span>
+<span class="cl" id="ln13"> </span>
+<span class="cl" id="ln14">  <span class="kw">return</span> <span class="vr">xor</span>;   <span class="cm">// only missing number remains!</span></span>
+<span class="cl" id="ln15">}</span></pre>
+    <div class="prog-row">
+      <span class="prog-lbl" id="stepLbl">0 / 0</span>
+      <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Step generator ──────────────────────────────────────────
+function genSteps(nums) {
+  const n = nums.length;
+  const BITS = Math.max(4, Math.ceil(Math.log2(n+2))+1);
+  const steps = [];
+  const logs = [];
+  let xor = 0;
+
+  const snap = (phase, activeIdx, activeNum, msg, line, litClass) => {
+    logs.push({ msg, phase });
+    steps.push({ nums, n, xor, phase, activeIdx, activeNum, BITS, logs:[...logs], msg, line, litClass });
+  };
+
+  snap('init',-1,-1,`Init: <span class="hx">xor = 0</span>. Will XOR indices 0..${n}, then XOR each num. Duplicates cancel out!`,'ln1','lit-idx');
+
+  // Pass 1 — indices
+  for (let i = 0; i <= n; i++) {
+    const prev = xor;
+    xor ^= i;
+    snap('idx', i, -1,
+      `<span class="hi">i=${i}</span>: xor = ${prev} ^ ${i} = <span class="hx">${xor}</span> &nbsp; (${toBin(prev,BITS)} ⊕ ${toBin(i,BITS)} = ${toBin(xor,BITS)})`,
+      'ln6','lit-idx');
+  }
+
+  // Pass 2 — array nums
+  for (let num of nums) {
+    const prev = xor;
+    xor ^= num;
+    snap('num', -1, num,
+      `<span class="hn">num=${num}</span>: xor = ${prev} ^ ${num} = <span class="hx">${xor}</span> &nbsp; (${toBin(prev,BITS)} ⊕ ${toBin(num,BITS)} = ${toBin(xor,BITS)})`,
+      'ln11','lit-num');
+  }
+
+  snap('done',-1,-1,
+    `<span class="hm">✓ Missing = ${xor}!</span> All existing nums XORed with themselves → 0. Only <span class="hm">${xor}</span> had no pair.`,
+    'ln14','lit-done');
+
+  return { steps, BITS };
+}
+
+// ── Render ───────────────────────────────────────────────────
+let steps=[], curStep=-1, timer=null, speed=750, BITS=4;
+let origNums=[];
+
+function toBin(v,b){return v.toString(2).padStart(b,'0')}
+
+function renderStep(idx) {
+  if (idx<0||idx>=steps.length) return;
+  const st = steps[idx]; curStep = idx;
+  const {nums,n,xor,phase,activeIdx,activeNum,logs,msg,line,litClass} = st;
+
+  // XOR hero
+  const xb = document.getElementById('xorBig');
+  xb.textContent = xor;
+  xb.classList.remove('flash');
+  void xb.offsetWidth;
+  xb.classList.add('flash');
+  document.getElementById('xorBin').textContent = toBin(xor, st.BITS);
+  document.getElementById('xorEq').textContent = phase==='done'
+    ? `→ Missing number is ${xor}`
+    : phase==='idx'
+      ? `After XOR with index ${activeIdx}`
+      : `After XOR with num ${activeNum}`;
+
+  // Phase bar
+  ['ph0','ph1','ph2'].forEach(id=>document.getElementById(id).className=document.getElementById(id).className.replace(/ on/,''));
+  if (phase==='idx'||phase==='init') document.getElementById('ph0').classList.add('on');
+  else if (phase==='num') document.getElementById('ph1').classList.add('on');
+  else if (phase==='done') document.getElementById('ph2').classList.add('on');
+
+  // Bit table
+  const bt = document.getElementById('bitTable');
+  bt.innerHTML = '';
+
+  // Position labels row
+  const posRow = document.createElement('div'); posRow.className='bt-row';
+  const posSpace = document.createElement('div'); posSpace.style.width='106px'; posSpace.style.flexShrink='0';
+  posRow.appendChild(posSpace);
+  for (let b=st.BITS-1;b>=0;b--) {
+    const pl = document.createElement('div'); pl.className='bit-pos-lbl'; pl.textContent=`b${b}`; posRow.appendChild(pl);
+  }
+  bt.appendChild(posRow);
+
+  // XOR accumulator row
+  const xorRow = document.createElement('div'); xorRow.className='bt-row';
+  const xl = document.createElement('div'); xl.className='bt-label lbl-xor'; xl.textContent='xor ='; xorRow.appendChild(xl);
+  toBin(xor,st.BITS).split('').forEach(bit=>{
+    const b=document.createElement('div'); b.className=`bit ${bit==='1'?'bx':'b0'}`; b.textContent=bit; xorRow.appendChild(b);
+  });
+  bt.appendChild(xorRow);
+
+  // Separator
+  const sep = document.createElement('div'); sep.className='sep-line'; bt.appendChild(sep);
+
+  // Active value row
+  if (phase==='idx' && activeIdx>=0) {
+    const row = document.createElement('div'); row.className='bt-row';
+    const lbl = document.createElement('div'); lbl.className='bt-label lbl-idx'; lbl.textContent=`⊕ idx ${activeIdx}`; row.appendChild(lbl);
+    toBin(activeIdx,st.BITS).split('').forEach(bit=>{
+      const b=document.createElement('div'); b.className=`bit bc ${bit==='1'?'b1':'b0'}`; b.textContent=bit; row.appendChild(b);
+    });
+    bt.appendChild(row);
+  } else if (phase==='num' && activeNum>=0) {
+    const row = document.createElement('div'); row.className='bt-row';
+    const lbl = document.createElement('div'); lbl.className='bt-label lbl-num'; lbl.textContent=`⊕ num ${activeNum}`; row.appendChild(lbl);
+    toBin(activeNum,st.BITS).split('').forEach(bit=>{
+      const b=document.createElement('div'); b.className=`bit bc ${bit==='1'?'b1':'b0'}`; b.textContent=bit; row.appendChild(b);
+    });
+    bt.appendChild(row);
+  } else if (phase==='done') {
+    const row = document.createElement('div'); row.className='bt-row';
+    const lbl = document.createElement('div'); lbl.className='bt-label lbl-mis'; lbl.textContent=`missing = ${xor}`; row.appendChild(lbl);
+    toBin(xor,st.BITS).split('').forEach(bit=>{
+      const b=document.createElement('div'); b.className=`bit bm ${bit==='1'?'b1':'b0'}`; b.textContent=bit; row.appendChild(b);
+    });
+    bt.appendChild(row);
+  }
+
+  // Array rows
+  const idxRow = document.getElementById('idxRow');
+  const numRow = document.getElementById('numRow');
+  idxRow.innerHTML = ''; numRow.innerHTML = '';
+
+  // Index cells 0..n
+  for (let i=0; i<=n; i++) {
+    const cw = document.createElement('div'); cw.className='cw';
+    const cell = document.createElement('div'); cell.className='cell';
+    cell.innerHTML = `<span class="cidx">idx</span>${i}`;
+    if (phase==='done') cell.classList.add('cdone');
+    else if (i===activeIdx) cell.classList.add('cidx-active');
+    else if (phase==='num'||(phase==='idx'&&i<activeIdx)) cell.classList.add('cdone');
+    idxRow.appendChild(cw); cw.appendChild(cell);
+  }
+
+  // Num cells
+  nums.forEach((v,i) => {
+    const cw = document.createElement('div'); cw.className='cw';
+    const cell = document.createElement('div'); cell.className='cell';
+    cell.innerHTML = `<span class="cidx">[${i}]</span>${v}`;
+    if (phase==='done' && v===xor) cell.classList.add('cmis');
+    else if (phase==='num' && v===activeNum) cell.classList.add('cnum-active');
+    else if (phase==='done') cell.classList.add('cdone');
+    numRow.appendChild(cw); cw.appendChild(cell);
+  });
+
+  // Status
+  document.getElementById('statusMsg').innerHTML = msg;
+
+  // Log
+  const logEl = document.getElementById('logItems');
+  logEl.innerHTML = '';
+  logs.slice(-8).forEach((l,li)=>{
+    const el = document.createElement('div');
+    el.className = `log-item li-${l.phase==='idx'||l.phase==='init'?'idx':l.phase==='num'?'num':'done'}`;
+    el.innerHTML = l.msg;
+    logEl.appendChild(el);
+  });
+  logEl.scrollTop = logEl.scrollHeight;
+
+  // Code highlight
+  document.querySelectorAll('.cl').forEach(el=>{el.className='cl'});
+  if (line) { const el=document.getElementById(line); if(el) el.classList.add(litClass); }
+
+  // Progress
+  document.getElementById('stepLbl').textContent=`${idx+1} / ${steps.length}`;
+  document.getElementById('progFill').style.width=`${((idx+1)/steps.length)*100}%`;
+}
+
+function parse(){
+  return document.getElementById('inArr').value.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+}
+function build(){
+  const arr=parse();
+  if(arr.length<1){alert('Enter at least 1 number.');return false;}
+  origNums=[...arr];
+  const res=genSteps(arr);
+  steps=res.steps; BITS=res.BITS; curStep=-1; return true;
+}
+window.resetAll = function(){clearTimeout(timer);timer=null;if(!build())return;renderStep(0);}
+window.stepFwd  = function(){clearTimeout(timer);timer=null;if(!steps.length){if(!build())return;}if(curStep<steps.length-1)renderStep(curStep+1);}
+window.startAuto= function(){
+  if(!steps.length||curStep>=steps.length-1){if(!build())return;renderStep(0);}
+  clearTimeout(timer);
+  function tick(){if(curStep<steps.length-1){renderStep(curStep+1);timer=setTimeout(tick,speed);}}
+  timer=setTimeout(tick,speed);
+}
+window.setSpd = function(ms){
+  speed=ms;
+  ['ss','sm','sf'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  if(ms===1400)document.getElementById('ss').classList.add('on');
+  else if(ms===750)document.getElementById('sm').classList.add('on');
+  else document.getElementById('sf').classList.add('on');
+}
+window.addEventListener('DOMContentLoaded',()=>{build();renderStep(0);});
+</script>
+</body>
+</html>

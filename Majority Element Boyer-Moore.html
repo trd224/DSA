@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Majority Element — Boyer-Moore Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Playfair+Display:wght@400;600;700;900&family=Lato:wght@300;400;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fdfaf5;
+  --s1:#f5f0e8;
+  --s2:#ede6d8;
+  --bd:#d8cebc;
+  --bd2:#c4b89e;
+  --ink:#1a150d;
+  --muted:#7a6e5e;
+  --muted2:#a89880;
+  --cand:#1d6a3a;    /* candidate  – forest green */
+  --count:#b5400a;   /* count      – burnt orange */
+  --win:#7c2d8a;     /* winner     – deep violet  */
+  --match:#0e5fa3;   /* match      – navy blue    */
+  --nomatch:#c0391a; /* no-match   – crimson      */
+  --zero:#6b5e4e;    /* count=0    – warm brown   */
+  --mono:'JetBrains Mono',monospace;
+  --serif:'Playfair Display',serif;
+  --sans:'Lato',sans-serif;
+}
+body{
+  background:var(--bg);color:var(--ink);font-family:var(--sans);
+  min-height:100vh;padding:40px 16px 80px;
+  background-image:
+    repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(0,0,0,.025) 39px,rgba(0,0,0,.025) 40px);
+}
+.page{max-width:940px;margin:0 auto}
+
+/* ── Header ── */
+.hdr{margin-bottom:36px;animation:up .45s ease forwards;border-bottom:2px solid var(--ink);padding-bottom:20px}
+.tag-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.tag{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:3px 10px;border-radius:2px;border:1.5px solid}
+.tm{color:#b5400a;border-color:rgba(181,64,10,.4);background:rgba(181,64,10,.06)}
+.ta{color:var(--match);border-color:rgba(14,95,163,.3);background:rgba(14,95,163,.05)}
+.tw{color:var(--win);border-color:rgba(124,45,138,.3);background:rgba(124,45,138,.05)}
+h1{font-family:var(--serif);font-size:clamp(30px,5.5vw,58px);font-weight:900;line-height:.95;letter-spacing:-1px}
+h1 em{font-style:normal;color:var(--cand)}
+h1 span{font-style:italic;color:var(--win)}
+.sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:10px}
+
+/* ── Controls ── */
+.top-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:24px;animation:up .45s ease .1s forwards;opacity:0}
+.in-box{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--bd2);border-radius:7px;padding:8px 14px;flex:1;min-width:220px}
+.in-box label{font-family:var(--mono);font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:2px;white-space:nowrap}
+.in-box input{flex:1;font-family:var(--mono);font-size:14px;background:transparent;border:none;color:var(--ink);outline:none}
+.btn{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border:none;border-radius:7px;padding:10px 18px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{transform:translateY(-1px);opacity:.85}
+.btn-play{background:var(--ink);color:#fff}
+.btn-step{background:#fff;color:var(--match);border:1.5px solid var(--match)}
+.btn-rst{background:#fff;color:var(--muted);border:1.5px solid var(--bd2)}
+.spd-row{display:flex;align-items:center;gap:5px}
+.spd-lbl{font-family:var(--mono);font-size:9px;color:var(--muted2)}
+.sb{font-family:var(--mono);font-size:10px;background:#fff;border:1px solid var(--bd);color:var(--muted);border-radius:4px;padding:4px 9px;cursor:pointer;transition:all .15s}
+.sb.on{border-color:var(--cand);color:var(--cand);background:rgba(29,106,58,.06)}
+
+/* ── Candidate + Count hero ── */
+.hero-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;animation:up .45s ease .15s forwards;opacity:0}
+@media(max-width:560px){.hero-row{grid-template-columns:1fr}}
+.hero-card{background:#fff;border:2px solid var(--bd2);border-radius:12px;padding:22px 24px}
+.hc-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px}
+.lbl-cand{color:var(--cand)}
+.lbl-count{color:var(--count)}
+.hc-val{font-family:var(--serif);font-size:52px;font-weight:900;line-height:1;transition:all .3s}
+.val-cand{color:var(--cand)}
+.val-count{color:var(--count)}
+.val-count.zero{color:var(--muted2)}
+.hc-note{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5}
+
+/* count bar */
+.count-bar-track{height:10px;background:var(--s2);border-radius:99px;margin-top:10px;overflow:hidden;border:1px solid var(--bd)}
+.count-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--cand),var(--match));transition:width .4s ease}
+
+/* ── Array stage ── */
+.arr-card{background:#fff;border:2px solid var(--bd2);border-radius:12px;padding:24px;margin-bottom:16px;animation:up .45s ease .2s forwards;opacity:0;overflow-x:auto}
+.sec-lbl{font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.arr-stage{display:flex;gap:8px;flex-wrap:nowrap;min-width:fit-content}
+.cw{display:flex;flex-direction:column;align-items:center;gap:5px}
+.cell{
+  width:60px;height:60px;border-radius:10px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:22px;font-weight:700;
+  border:2px solid var(--bd);background:var(--s1);color:var(--muted);
+  transition:all .28s ease;position:relative;gap:1px;
+}
+.cell .ci{font-size:8px;font-weight:400;color:var(--muted2)}
+
+/* states */
+.cell.c-cur-match{
+  border-color:var(--match);background:rgba(14,95,163,.07);color:var(--match);
+  box-shadow:0 4px 20px rgba(14,95,163,.15);
+  animation:bounce .4s ease;
+}
+.cell.c-cur-nomatch{
+  border-color:var(--nomatch);background:rgba(192,57,26,.07);color:var(--nomatch);
+  box-shadow:0 4px 16px rgba(192,57,26,.12);
+  animation:shake .35s ease;
+}
+.cell.c-cur-reset{
+  border-color:var(--cand);background:rgba(29,106,58,.08);color:var(--cand);
+  box-shadow:0 4px 20px rgba(29,106,58,.18);
+  animation:pop .4s ease;
+}
+.cell.c-past-cand{border-color:rgba(29,106,58,.3);background:rgba(29,106,58,.05);color:var(--cand)}
+.cell.c-past-other{border-color:var(--bd);background:var(--s2);color:var(--muted2)}
+.cell.c-winner{
+  border-color:var(--win);background:rgba(124,45,138,.08);color:var(--win);
+  box-shadow:0 4px 24px rgba(124,45,138,.2);
+  animation:winner .5s ease;
+}
+.cell.c-done-win{border-color:var(--win);background:rgba(124,45,138,.07);color:var(--win)}
+.cell.c-done-lose{border-color:var(--bd);background:var(--s2);color:var(--muted2);opacity:.45}
+
+@keyframes bounce{0%,100%{transform:translateY(0)}40%{transform:translateY(-8px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@keyframes pop{0%{transform:scale(.8);opacity:.4}100%{transform:scale(1);opacity:1}}
+@keyframes winner{0%{transform:scale(.9)}60%{transform:scale(1.1)}100%{transform:scale(1)}}
+
+.pa{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px}
+.pa-cur{background:rgba(14,95,163,.1);color:var(--match)}
+.pa-empty{visibility:hidden}
+.cidx{font-family:var(--mono);font-size:8px;color:var(--muted2)}
+
+/* vote tally dots under cells */
+.vote-dots{display:flex;gap:3px;flex-wrap:wrap;justify-content:center;max-width:64px}
+.vdot{width:7px;height:7px;border-radius:50%;background:var(--bd);flex-shrink:0;transition:background .2s}
+.vdot.vd-for{background:var(--cand)}
+.vdot.vd-against{background:var(--nomatch)}
+
+/* ── Status strip ── */
+.status-card{
+  background:#fff;border:2px solid var(--bd2);border-radius:12px;
+  padding:16px 20px;margin-bottom:16px;font-family:var(--mono);font-size:13px;line-height:1.75;
+  min-height:60px;animation:up .45s ease .25s forwards;opacity:0;
+  border-left:5px solid var(--bd2);transition:border-color .3s;
+}
+.status-card.sc-match{border-left-color:var(--match)}
+.status-card.sc-nomatch{border-left-color:var(--nomatch)}
+.status-card.sc-reset{border-left-color:var(--cand)}
+.status-card.sc-win{border-left-color:var(--win)}
+.hca{color:var(--cand);font-weight:700}
+.hco{color:var(--count);font-weight:700}
+.hm{color:var(--match);font-weight:700}
+.hn{color:var(--nomatch);font-weight:700}
+.hw{color:var(--win);font-weight:700}
+.hz{color:var(--muted);font-weight:700}
+
+/* ── Decision log ── */
+.log-card{
+  background:#fff;border:2px solid var(--bd2);border-radius:12px;
+  padding:20px 24px;margin-bottom:16px;
+  animation:up .45s ease .28s forwards;opacity:0;
+}
+.log-list{display:flex;flex-direction:column;gap:5px;max-height:190px;overflow-y:auto}
+.li{
+  font-family:var(--mono);font-size:11px;line-height:1.65;
+  padding:7px 11px;border-radius:6px;border:1.5px solid var(--bd);background:var(--s1);
+  animation:logIn .2s ease;
+}
+.li.li-reset{border-color:rgba(29,106,58,.3);background:rgba(29,106,58,.04)}
+.li.li-match{border-color:rgba(14,95,163,.25);background:rgba(14,95,163,.04)}
+.li.li-nomatch{border-color:rgba(192,57,26,.2);background:rgba(192,57,26,.03)}
+.li.li-done{border-color:rgba(124,45,138,.3);background:rgba(124,45,138,.05);font-weight:700}
+@keyframes logIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+
+/* ── Insight box ── */
+.insight{
+  background:var(--s1);border:1.5px solid var(--bd2);border-radius:10px;
+  padding:14px 18px;margin-bottom:16px;font-family:var(--mono);font-size:11px;
+  line-height:1.75;color:var(--muted);
+  animation:up .45s ease .32s forwards;opacity:0;
+}
+.insight strong{color:var(--ink)}
+
+/* ── Code ── */
+.code-card{
+  background:var(--ink);border-radius:12px;overflow:hidden;
+  animation:up .45s ease .35s forwards;opacity:0;
+}
+.code-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;border-bottom:1px solid #2a2010;background:#130f07}
+.code-hdr span{font-family:var(--mono);font-size:11px;color:#5a4a30}
+.dots{display:flex;gap:5px}.dot{width:9px;height:9px;border-radius:50%}
+pre{padding:22px 24px;font-family:var(--mono);font-size:12.5px;line-height:1.9;color:#7a6848;overflow-x:auto}
+.kw{color:#c792ea}.fn{color:#82aaff}.vr{color:#ffcb6b}.nm{color:#f78c6c}.cm{color:#2e2518;font-style:italic}
+.cl{display:block;border-radius:3px;padding:0 6px;margin:0 -6px;transition:background .2s}
+.cl.lit-reset{background:rgba(29,106,58,.12);border-left:2px solid var(--cand);padding-left:10px;margin-left:-10px;color:#a8d4b0}
+.cl.lit-match{background:rgba(14,95,163,.1);border-left:2px solid var(--match);padding-left:10px;margin-left:-10px;color:#a8c8e8}
+.cl.lit-nomatch{background:rgba(192,57,26,.1);border-left:2px solid var(--nomatch);padding-left:10px;margin-left:-10px;color:#e8b0a0}
+.cl.lit-done{background:rgba(124,45,138,.1);border-left:2px solid var(--win);padding-left:10px;margin-left:-10px;color:#d0a8e0}
+
+.prog-row{display:flex;align-items:center;gap:10px;padding:0 24px 14px}
+.prog-lbl{font-family:var(--mono);font-size:10px;color:#5a4a30;white-space:nowrap}
+.prog-track{flex:1;height:3px;background:#2a2010;border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--cand),var(--match));transition:width .3s}
+
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="tag-row">
+      <span class="tag tm">Medium</span>
+      <span class="tag ta">Boyer-Moore Vote</span>
+      <span class="tag tw">Array · T2</span>
+    </div>
+    <h1><em>Majority</em><br/><span>Element</span></h1>
+    <p class="sub">Boyer-Moore Voting · O(n) time · O(1) space · appears &gt; ⌊n/2⌋ times</p>
+  </div>
+
+  <!-- Controls -->
+  <div class="top-bar">
+    <div class="in-box">
+      <label>Array</label>
+      <input id="inArr" value="2, 2, 1, 1, 1, 2, 2"/>
+    </div>
+    <button class="btn btn-play" onclick="window.startAuto()">▶ Play</button>
+    <button class="btn btn-step" onclick="window.stepFwd()">Step →</button>
+    <button class="btn btn-rst"  onclick="window.resetAll()">↺ Reset</button>
+    <div class="spd-row">
+      <span class="spd-lbl">Speed</span>
+      <button class="sb" onclick="window.setSpd(1300)" id="ss">Slow</button>
+      <button class="sb on" onclick="window.setSpd(700)" id="sm">Med</button>
+      <button class="sb" onclick="window.setSpd(200)" id="sf">Fast</button>
+    </div>
+  </div>
+
+  <!-- Candidate + Count hero -->
+  <div class="hero-row">
+    <div class="hero-card">
+      <div class="hc-label lbl-cand">Current Candidate</div>
+      <div class="hc-val val-cand" id="heroCandidate">—</div>
+      <div class="hc-note" id="heroNote">Waiting to start…</div>
+    </div>
+    <div class="hero-card">
+      <div class="hc-label lbl-count">Count</div>
+      <div class="hc-val val-count" id="heroCount">0</div>
+      <div class="count-bar-track"><div class="count-bar-fill" id="countBar" style="width:0%"></div></div>
+      <div class="hc-note" id="countNote">Votes for candidate</div>
+    </div>
+  </div>
+
+  <!-- Array -->
+  <div class="arr-card">
+    <div class="sec-lbl">Array State</div>
+    <div class="arr-stage" id="arrStage"></div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-card" id="statusCard">Press ▶ Play or Step → to begin.</div>
+
+  <!-- Log -->
+  <div class="log-card">
+    <div class="sec-lbl" style="margin-bottom:10px">Decision Log</div>
+    <div class="log-list" id="logList"></div>
+  </div>
+
+  <!-- Insight -->
+  <div class="insight">
+    <strong>Why it works:</strong> If a majority element exists (appears &gt; n/2 times), even if every other element tries to cancel it out 1-for-1, the majority element still has votes left over. The candidate surviving at the end <em>must</em> be the majority.
+  </div>
+
+  <!-- Code -->
+  <div class="code-card">
+    <div class="code-hdr">
+      <div class="dots">
+        <div class="dot" style="background:#f06060"></div>
+        <div class="dot" style="background:#f0c040"></div>
+        <div class="dot" style="background:#4af0a0"></div>
+      </div>
+      <span>majorityElement.js</span>
+    </div>
+    <pre>
+<span class="cl" id="ln0"><span class="kw">function</span> <span class="fn">majorityElement</span>(nums) {</span>
+<span class="cl" id="ln1">  <span class="kw">let</span> <span class="vr">count</span>     = <span class="nm">0</span>;</span>
+<span class="cl" id="ln2">  <span class="kw">let</span> <span class="vr">candidate</span> = <span class="nm">null</span>;</span>
+<span class="cl" id="ln3"> </span>
+<span class="cl" id="ln4">  <span class="kw">for</span> (<span class="kw">let</span> <span class="vr">num</span> <span class="kw">of</span> nums) {</span>
+<span class="cl" id="ln5"> </span>
+<span class="cl" id="ln6">    <span class="kw">if</span> (<span class="vr">count</span> === <span class="nm">0</span>) {</span>
+<span class="cl" id="ln7">      <span class="vr">candidate</span> = <span class="vr">num</span>;   <span class="cm">// pick new candidate</span></span>
+<span class="cl" id="ln8">    }</span>
+<span class="cl" id="ln9"> </span>
+<span class="cl" id="ln10">    <span class="kw">if</span> (<span class="vr">num</span> === <span class="vr">candidate</span>) {</span>
+<span class="cl" id="ln11">      <span class="vr">count</span>++;             <span class="cm">// vote FOR candidate</span></span>
+<span class="cl" id="ln12">    } <span class="kw">else</span> {</span>
+<span class="cl" id="ln13">      <span class="vr">count</span>--;             <span class="cm">// vote AGAINST candidate</span></span>
+<span class="cl" id="ln14">    }</span>
+<span class="cl" id="ln15">  }</span>
+<span class="cl" id="ln16"> </span>
+<span class="cl" id="ln17">  <span class="kw">return</span> <span class="vr">candidate</span>;       <span class="cm">// survivor = majority</span></span>
+<span class="cl" id="ln18">}</span></pre>
+    <div class="prog-row">
+      <span class="prog-lbl" id="stepLbl">0 / 0</span>
+      <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Step generator ──────────────────────────────────────────
+function genSteps(nums) {
+  const n = nums.length;
+  const steps = [];
+  const logs = [];
+  let count = 0, candidate = null;
+
+  const snap = (i, type, msg, logMsg, logType, line) => {
+    logs.push({ msg: logMsg, type: logType });
+    steps.push({ nums, n, count, candidate, i, type, msg, logs: logs.map(l=>({...l})), line });
+  };
+
+  snap(-1, 'init', `Init: <span class="hco">count = 0</span>, <span class="hca">candidate = null</span>. Scanning array left → right.`,
+    'Start. count=0, candidate=null.', 'match', 'ln1');
+
+  for (let i = 0; i < n; i++) {
+    const num = nums[i];
+    const wasZero = count === 0;
+
+    // check count === 0
+    if (wasZero) {
+      candidate = num;
+      snap(i, 'reset',
+        `count = 0 → <span class="hca">New candidate: ${candidate}</span>. Starting fresh with num[${i}] = ${num}.`,
+        `[${i}] num=${num}: count was 0 → candidate reset to ${candidate}`, 'reset', 'ln7');
+    }
+
+    // vote
+    if (num === candidate) {
+      count++;
+      snap(i, 'match',
+        `num[${i}]=${num} <span class="hm">matches candidate ${candidate}</span> → count++ = <span class="hco">${count}</span>`,
+        `[${i}] num=${num} = candidate ${candidate} → count++ = ${count}`, 'match', 'ln11');
+    } else {
+      count--;
+      snap(i, 'nomatch',
+        `num[${i}]=${num} <span class="hn">≠ candidate ${candidate}</span> → count-- = <span class="hco">${count}</span>`,
+        `[${i}] num=${num} ≠ candidate ${candidate} → count-- = ${count}`, 'nomatch', 'ln13');
+    }
+  }
+
+  snap(-1, 'done',
+    `<span class="hw">✓ Majority Element = ${candidate}!</span> It survived all cancellations with ${count} vote(s) remaining.`,
+    `Done! Majority = ${candidate} (${count} votes remaining)`, 'done', 'ln17');
+
+  return steps;
+}
+
+// ── Render ───────────────────────────────────────────────────
+let steps = [], curStep = -1, timer = null, speed = 700;
+
+function renderStep(idx) {
+  if (idx < 0 || idx >= steps.length) return;
+  const st = steps[idx]; curStep = idx;
+  const { nums, n, count, candidate, i, type, msg, logs, line } = st;
+  const isDone = type === 'done';
+  const maxCount = Math.ceil(n / 2);
+
+  // Hero cards
+  const hc = document.getElementById('heroCandidate');
+  hc.textContent = candidate !== null ? candidate : '—';
+
+  const hcnt = document.getElementById('heroCount');
+  hcnt.textContent = count;
+  hcnt.className = 'hc-val val-count' + (count === 0 ? ' zero' : '');
+
+  document.getElementById('heroNote').textContent =
+    isDone ? `✓ Winner: ${candidate}` :
+    candidate !== null ? `Candidate: ${candidate}` : 'No candidate yet';
+
+  document.getElementById('countNote').textContent =
+    count === 0 ? 'No votes — next num becomes candidate'
+    : `${count} net vote${count!==1?'s':''} for ${candidate}`;
+
+  const pct = Math.max(0, Math.min(100, (count / maxCount) * 100));
+  document.getElementById('countBar').style.width = pct + '%';
+
+  // Array stage
+  const stage = document.getElementById('arrStage');
+  stage.innerHTML = '';
+  nums.forEach((v, j) => {
+    const cw = document.createElement('div'); cw.className = 'cw';
+
+    // pointer arrow
+    const pa = document.createElement('div');
+    if (j === i && !isDone) { pa.className = 'pa pa-cur'; pa.textContent = 'cur'; }
+    else { pa.className = 'pa-empty'; pa.textContent = '.'; }
+
+    // cell
+    const cell = document.createElement('div'); cell.className = 'cell';
+    cell.innerHTML = `<span class="ci">[${j}]</span>${v}`;
+
+    if (isDone) {
+      cell.classList.add(v === candidate ? 'c-done-win' : 'c-done-lose');
+    } else if (j === i) {
+      if (type === 'reset') cell.classList.add('c-cur-reset');
+      else if (type === 'match') cell.classList.add('c-cur-match');
+      else if (type === 'nomatch') cell.classList.add('c-cur-nomatch');
+    } else if (j < i) {
+      cell.classList.add(v === candidate ? 'c-past-cand' : 'c-past-other');
+    }
+
+    // vote dots — show for past cells
+    const dots = document.createElement('div'); dots.className = 'vote-dots';
+    if (j < i || isDone) {
+      const isFor = v === candidate;
+      const dot = document.createElement('div');
+      dot.className = 'vdot ' + (isFor ? 'vd-for' : 'vd-against');
+      dots.appendChild(dot);
+    }
+
+    const ci = document.createElement('div'); ci.className = 'cidx'; ci.textContent = j;
+    cw.appendChild(pa); cw.appendChild(cell); cw.appendChild(dots); cw.appendChild(ci);
+    stage.appendChild(cw);
+  });
+
+  // Status card
+  const sc = document.getElementById('statusCard');
+  sc.innerHTML = msg;
+  sc.className = 'status-card ' +
+    (type === 'match' ? 'sc-match' : type === 'nomatch' ? 'sc-nomatch' : type === 'reset' ? 'sc-reset' : type === 'done' ? 'sc-win' : '');
+
+  // Log
+  const ll = document.getElementById('logList');
+  ll.innerHTML = '';
+  logs.slice(-10).forEach((l, li) => {
+    const el = document.createElement('div');
+    el.className = `li li-${l.type}`;
+    el.textContent = l.msg;
+    ll.appendChild(el);
+  });
+  ll.scrollTop = ll.scrollHeight;
+
+  // Code highlight
+  document.querySelectorAll('.cl').forEach(el => el.className = 'cl');
+  if (line) {
+    const el = document.getElementById(line);
+    if (el) {
+      const cls = type === 'reset' ? 'lit-reset' : type === 'match' ? 'lit-match' : type === 'nomatch' ? 'lit-nomatch' : 'lit-done';
+      el.classList.add(cls);
+    }
+  }
+
+  // Progress
+  document.getElementById('stepLbl').textContent = `${idx + 1} / ${steps.length}`;
+  document.getElementById('progFill').style.width = `${((idx + 1) / steps.length) * 100}%`;
+}
+
+function parse() {
+  return document.getElementById('inArr').value
+    .split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+}
+function build() {
+  const arr = parse();
+  if (arr.length < 1) { alert('Enter at least 1 number.'); return false; }
+  steps = genSteps(arr); curStep = -1; return true;
+}
+
+window.resetAll  = function () { clearTimeout(timer); timer = null; if (!build()) return; renderStep(0); };
+window.stepFwd   = function () { clearTimeout(timer); timer = null; if (!steps.length) { if (!build()) return; } if (curStep < steps.length - 1) renderStep(curStep + 1); };
+window.startAuto = function () {
+  if (!steps.length || curStep >= steps.length - 1) { if (!build()) return; renderStep(0); }
+  clearTimeout(timer);
+  function tick() { if (curStep < steps.length - 1) { renderStep(curStep + 1); timer = setTimeout(tick, speed); } }
+  timer = setTimeout(tick, speed);
+};
+window.setSpd = function (ms) {
+  speed = ms;
+  ['ss', 'sm', 'sf'].forEach(id => document.getElementById(id).classList.remove('on'));
+  if (ms === 1300) document.getElementById('ss').classList.add('on');
+  else if (ms === 700) document.getElementById('sm').classList.add('on');
+  else document.getElementById('sf').classList.add('on');
+};
+
+window.addEventListener('DOMContentLoaded', () => { build(); renderStep(0); });
+</script>
+</body>
+</html>
