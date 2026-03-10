@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Minimum Window Substring</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Fraunces:ital,wght@0,300;0,700;0,900;1,300;1,700&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fefcf8;
+  --s1:#f7f3ec;
+  --s2:#ede8de;
+  --bd:#d8d0c0;
+  --bd2:#c0b8a4;
+  --ink:#18140c;
+  --muted:#7a7060;
+  --muted2:#a89e8c;
+  --L:#1a5fb4;     /* left  – prussian blue  */
+  --R:#b5460d;     /* right – burnt sienna   */
+  --win:#1e7a3c;   /* valid window – forest  */
+  --need:#7c2d8a;  /* needed – plum          */
+  --best:#b5460d;  /* best  – same as R      */
+  --miss:#c02020;  /* missing char – red     */
+  --have:#1e7a3c;  /* have enough – green    */
+  --mono:'JetBrains Mono',monospace;
+  --serif:'Fraunces',serif;
+  --sans:'Figtree',sans-serif;
+}
+body{
+  background:var(--bg);color:var(--ink);font-family:var(--sans);
+  min-height:100vh;padding:40px 16px 80px;
+  background-image:
+    repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(0,0,0,.018) 59px,rgba(0,0,0,.018) 60px),
+    repeating-linear-gradient(0deg,transparent,transparent 59px,rgba(0,0,0,.018) 59px,rgba(0,0,0,.018) 60px);
+}
+.page{max-width:1000px;margin:0 auto}
+
+/* ── Header ── */
+.hdr{margin-bottom:32px;animation:up .5s ease forwards;padding-bottom:22px;border-bottom:2.5px solid var(--ink)}
+.tag-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.tag{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:3px 11px;border-radius:2px;border:1.5px solid}
+.th{color:#b5460d;border-color:rgba(181,70,13,.4);background:rgba(181,70,13,.06)}
+.ts{color:var(--L);border-color:rgba(26,95,180,.35);background:rgba(26,95,180,.05)}
+.tt{color:var(--need);border-color:rgba(124,45,138,.3);background:rgba(124,45,138,.05)}
+h1{font-family:var(--serif);font-size:clamp(30px,6vw,64px);font-weight:900;line-height:.9;letter-spacing:-2px}
+h1 .acc{color:var(--L);font-style:italic}
+h1 .acc2{color:var(--need)}
+.sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:10px}
+
+/* ── Controls ── */
+.top-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:24px;animation:up .5s .1s ease forwards;opacity:0}
+.in-grp{display:flex;gap:8px;flex:1;flex-wrap:wrap;min-width:300px}
+.in-box{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--bd2);border-radius:7px;padding:8px 14px;flex:1;min-width:140px}
+.in-box label{font-family:var(--mono);font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:2px;white-space:nowrap}
+.in-box input{flex:1;font-family:var(--mono);font-size:15px;background:transparent;border:none;color:var(--ink);outline:none;letter-spacing:3px;min-width:40px}
+.btn{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border:none;border-radius:7px;padding:10px 18px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{transform:translateY(-1px);opacity:.85}
+.btn-play{background:var(--ink);color:#fff}
+.btn-step{background:#fff;color:var(--L);border:1.5px solid var(--L)}
+.btn-rst{background:#fff;color:var(--muted);border:1.5px solid var(--bd2)}
+.spd-row{display:flex;align-items:center;gap:5px}
+.spd-lbl{font-family:var(--mono);font-size:9px;color:var(--muted2)}
+.sb{font-family:var(--mono);font-size:10px;background:#fff;border:1px solid var(--bd);color:var(--muted);border-radius:4px;padding:4px 9px;cursor:pointer;transition:all .15s}
+.sb.on{border-color:var(--L);color:var(--L)}
+
+/* ── Score row ── */
+.score-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;animation:up .5s .15s ease forwards;opacity:0}
+@media(max-width:640px){.score-row{grid-template-columns:1fr 1fr}}
+.sc{background:#fff;border:1.5px solid var(--bd2);border-radius:12px;padding:16px 18px}
+.sc-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.sc-val{font-family:var(--mono);font-size:30px;font-weight:700;line-height:1;transition:all .3s}
+.sc-sub{font-family:var(--mono);font-size:10px;margin-top:5px;color:var(--muted)}
+.l-L{color:var(--L)}.v-L{color:var(--L)}
+.l-R{color:var(--R)}.v-R{color:var(--R)}
+.l-F{color:var(--have)}.v-F{color:var(--have)}
+.l-B{color:var(--need)}.v-B{color:var(--need)}
+
+/* ── String S display ── */
+.str-card{background:#fff;border:1.5px solid var(--bd2);border-radius:14px;padding:24px;margin-bottom:14px;animation:up .5s .2s ease forwards;opacity:0;overflow-x:auto}
+.sec-lbl{font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.char-row{display:flex;gap:6px;flex-wrap:nowrap;min-width:fit-content;margin-bottom:6px}
+.win-bar{display:flex;gap:6px;flex-wrap:nowrap;min-width:fit-content}
+.cw{display:flex;flex-direction:column;align-items:center;gap:4px}
+
+.cell{
+  width:52px;height:52px;border-radius:9px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:22px;font-weight:700;
+  border:2px solid var(--bd);background:var(--s1);color:var(--muted2);
+  transition:all .25s ease;
+}
+.cell.c-win{border-color:var(--win);background:rgba(30,122,60,.07);color:var(--win)}
+.cell.c-L{border-color:var(--L);background:rgba(26,95,180,.09);color:var(--L);box-shadow:0 0 16px rgba(26,95,180,.18);animation:lp .7s ease infinite alternate}
+.cell.c-R{border-color:var(--R);background:rgba(181,70,13,.09);color:var(--R);box-shadow:0 0 16px rgba(181,70,13,.18);animation:rp .7s ease infinite alternate}
+.cell.c-LR{border-color:var(--win);background:rgba(30,122,60,.09);color:var(--win);box-shadow:0 0 16px rgba(30,122,60,.2)}
+.cell.c-valid{border-color:var(--win);background:rgba(30,122,60,.08);color:var(--win)}
+.cell.c-best{border-color:var(--need);background:rgba(124,45,138,.09);color:var(--need);animation:pop .4s ease}
+.cell.c-past{border-color:var(--bd);background:var(--bg);color:var(--muted2);opacity:.5}
+.cell.c-need{border-color:var(--miss);background:rgba(192,32,32,.07);color:var(--miss)}
+
+@keyframes lp{from{box-shadow:0 0 6px rgba(26,95,180,.1)}to{box-shadow:0 0 20px rgba(26,95,180,.3)}}
+@keyframes rp{from{box-shadow:0 0 6px rgba(181,70,13,.1)}to{box-shadow:0 0 20px rgba(181,70,13,.28)}}
+@keyframes pop{from{transform:scale(.8);opacity:.3}to{transform:scale(1);opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}30%{transform:translateX(-4px)}70%{transform:translateX(4px)}}
+
+.pa{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;white-space:nowrap}
+.pa-L{background:rgba(26,95,180,.12);color:var(--L)}
+.pa-R{background:rgba(181,70,13,.1);color:var(--R)}
+.pa-LR{background:rgba(30,122,60,.1);color:var(--win)}
+.pa-mt{visibility:hidden}
+.cidx{font-family:var(--mono);font-size:8px;color:var(--muted2)}
+
+.ws{width:52px;height:5px;border-radius:2px;background:transparent;flex-shrink:0;transition:all .25s}
+.ws-in{background:rgba(30,122,60,.3)}
+.ws-valid{background:var(--win)}
+.ws-best{background:var(--need)}
+
+/* ── Freq table ── */
+.freq-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;animation:up .5s .25s ease forwards;opacity:0}
+@media(max-width:600px){.freq-grid{grid-template-columns:1fr}}
+.freq-card{background:#fff;border:1.5px solid var(--bd2);border-radius:14px;padding:18px 20px}
+.freq-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;min-height:52px;align-items:center}
+.fc{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  min-width:44px;
+}
+.fc-char{
+  font-family:var(--mono);font-size:16px;font-weight:700;
+  width:44px;height:44px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  border:1.5px solid var(--bd2);background:var(--s1);color:var(--ink);
+  transition:all .25s;
+}
+.fc-char.fch-have{border-color:var(--have);background:rgba(30,122,60,.08);color:var(--have)}
+.fc-char.fch-miss{border-color:var(--miss);background:rgba(192,32,32,.07);color:var(--miss);animation:shake .35s ease}
+.fc-char.fch-cur{border-color:var(--R);background:rgba(181,70,13,.08);color:var(--R)}
+.fc-cnt{font-family:var(--mono);font-size:9px;color:var(--muted2);text-align:center}
+.fc-bar{width:44px;height:4px;border-radius:99px;background:var(--s2);overflow:hidden;margin-top:2px}
+.fc-bar-fill{height:100%;border-radius:99px;transition:width .3s}
+.fb-have{background:var(--have)}.fb-miss{background:var(--miss)}
+
+/* formed counter */
+.formed-strip{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  background:var(--s1);border:1.5px solid var(--bd);border-radius:8px;
+  padding:10px 16px;margin-top:12px;font-family:var(--mono);font-size:12px;
+}
+.fs-label{color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:1.5px}
+.fs-val{font-size:20px;font-weight:700}
+.fs-have{color:var(--have)}.fs-need{color:var(--miss)}
+.fs-slash{color:var(--muted2)}
+
+/* ── Status ── */
+.status-card{
+  background:#fff;border:1.5px solid var(--bd2);border-radius:12px;
+  padding:14px 20px;margin-bottom:14px;font-family:var(--mono);font-size:12px;
+  line-height:1.8;min-height:54px;border-left:5px solid var(--bd2);transition:border-color .3s;
+  animation:up .5s .3s ease forwards;opacity:0;
+}
+.sc-expand{border-left-color:var(--win)}.sc-shrink{border-left-color:var(--miss)}.sc-best{border-left-color:var(--need)}.sc-wait{border-left-color:var(--bd2)}
+.hL{color:var(--L);font-weight:700}.hR{color:var(--R);font-weight:700}
+.hw{color:var(--win);font-weight:700}.hd{color:var(--miss);font-weight:700}
+.hb{color:var(--need);font-weight:700}.hm{color:var(--muted);font-weight:700}
+
+/* ── Code ── */
+.code-card{background:var(--ink);border-radius:14px;overflow:hidden;animation:up .5s .35s ease forwards;opacity:0}
+.code-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;border-bottom:1px solid #2a2010;background:#100d08}
+.code-hdr span{font-family:var(--mono);font-size:11px;color:#4a3d2a}
+.dots{display:flex;gap:5px}.dot{width:9px;height:9px;border-radius:50%}
+pre{padding:20px 24px;font-family:var(--mono);font-size:12px;line-height:1.9;color:#5a4a38;overflow-x:auto}
+.kw{color:#c792ea}.fn{color:#82aaff}.vr{color:#ffcb6b}.nm{color:#f78c6c}.cm{color:#2e2518;font-style:italic}
+.cl{display:block;border-radius:3px;padding:0 6px;margin:0 -6px;transition:background .2s}
+.cl.lit-exp{background:rgba(30,122,60,.1);border-left:2px solid var(--win);padding-left:10px;margin-left:-10px;color:#90d8a8}
+.cl.lit-shr{background:rgba(192,32,32,.08);border-left:2px solid var(--miss);padding-left:10px;margin-left:-10px;color:#e8a0a0}
+.cl.lit-best{background:rgba(124,45,138,.1);border-left:2px solid var(--need);padding-left:10px;margin-left:-10px;color:#d0a8e0}
+
+.prog-row{display:flex;align-items:center;gap:10px;padding:0 24px 14px}
+.prog-lbl{font-family:var(--mono);font-size:10px;color:#4a3d2a;white-space:nowrap}
+.prog-track{flex:1;height:3px;background:#2a2010;border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--L),var(--need));transition:width .3s}
+
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="tag-row">
+      <span class="tag th">High</span>
+      <span class="tag ts">Sliding Window</span>
+      <span class="tag tt">String · T2</span>
+    </div>
+    <h1>Minimum<br/><span class="acc">Window</span><br/><span class="acc2">Substring</span></h1>
+    <p class="sub">Expand right until all chars covered · Shrink left while still valid · O(n+m) time</p>
+  </div>
+
+  <!-- Controls -->
+  <div class="top-bar">
+    <div class="in-grp">
+      <div class="in-box">
+        <label>S (source)</label>
+        <input id="inS" value="ADOBECODEBANC" maxlength="20"/>
+      </div>
+      <div class="in-box">
+        <label>T (target)</label>
+        <input id="inT" value="ABC" maxlength="8"/>
+      </div>
+    </div>
+    <button class="btn btn-play" onclick="window.startAuto()">▶ Play</button>
+    <button class="btn btn-step" onclick="window.stepFwd()">Step →</button>
+    <button class="btn btn-rst"  onclick="window.resetAll()">↺ Reset</button>
+    <div class="spd-row">
+      <span class="spd-lbl">Speed</span>
+      <button class="sb" onclick="window.setSpd(1400)" id="ss">Slow</button>
+      <button class="sb on" onclick="window.setSpd(750)" id="sm">Med</button>
+      <button class="sb" onclick="window.setSpd(200)" id="sf">Fast</button>
+    </div>
+  </div>
+
+  <!-- Scorecard -->
+  <div class="score-row">
+    <div class="sc">
+      <div class="sc-lbl l-L">Left</div>
+      <div class="sc-val v-L" id="scL">0</div>
+      <div class="sc-sub" id="scLc">s[0]</div>
+    </div>
+    <div class="sc">
+      <div class="sc-lbl l-R">Right</div>
+      <div class="sc-val v-R" id="scR">0</div>
+      <div class="sc-sub" id="scRc">s[0]</div>
+    </div>
+    <div class="sc">
+      <div class="sc-lbl l-F">Formed</div>
+      <div class="sc-val v-F" id="scFormed">0</div>
+      <div class="sc-sub" id="scRequired">of 0 needed</div>
+    </div>
+    <div class="sc">
+      <div class="sc-lbl l-B">Best</div>
+      <div class="sc-val v-B" id="scBest">∞</div>
+      <div class="sc-sub" id="scBestStr">—</div>
+    </div>
+  </div>
+
+  <!-- String S -->
+  <div class="str-card">
+    <div class="sec-lbl" id="strLbl">Source String S</div>
+    <div class="char-row" id="charRow"></div>
+    <div class="win-bar" id="winBar"></div>
+  </div>
+
+  <!-- Freq tables -->
+  <div class="freq-grid">
+    <div class="freq-card">
+      <div class="sec-lbl">Target T — Required Freq</div>
+      <div class="freq-row" id="tFreqRow"></div>
+    </div>
+    <div class="freq-card">
+      <div class="sec-lbl">Window — Current Freq</div>
+      <div class="freq-row" id="wFreqRow"></div>
+      <div class="formed-strip">
+        <span class="fs-label">Chars satisfied</span>
+        <span class="fs-val fs-have" id="fsHave">0</span>
+        <span class="fs-slash">/</span>
+        <span class="fs-val fs-need" id="fsNeed">0</span>
+        <span class="fs-label" style="margin-left:6px">unique chars from T</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-card sc-wait" id="statusCard">Press ▶ Play or Step → to begin.</div>
+
+  <!-- Code -->
+  <div class="code-card">
+    <div class="code-hdr">
+      <div class="dots">
+        <div class="dot" style="background:#f06060"></div>
+        <div class="dot" style="background:#f0c040"></div>
+        <div class="dot" style="background:#4af0a0"></div>
+      </div>
+      <span>minWindow.js</span>
+    </div>
+    <pre>
+<span class="cl" id="ln0"><span class="kw">function</span> <span class="fn">minWindow</span>(s, t) {</span>
+<span class="cl" id="ln1">  <span class="kw">let</span> <span class="vr">map</span> = {};                              <span class="cm">// freq map of t</span></span>
+<span class="cl" id="ln2">  <span class="kw">for</span> (<span class="kw">let</span> char <span class="kw">of</span> t)</span>
+<span class="cl" id="ln3">    <span class="vr">map</span>[char] = (<span class="vr">map</span>[char] || <span class="nm">0</span>) + <span class="nm">1</span>;</span>
+<span class="cl" id="ln4"> </span>
+<span class="cl" id="ln5">  <span class="kw">let</span> left = <span class="nm">0</span>, count = <span class="nm">0</span>;</span>
+<span class="cl" id="ln6">  <span class="kw">let</span> minLen = <span class="nm">Infinity</span>, start = <span class="nm">0</span>;</span>
+<span class="cl" id="ln7"> </span>
+<span class="cl" id="ln8">  <span class="kw">for</span> (<span class="kw">let</span> right = <span class="nm">0</span>; right &lt; s.length; right++) {</span>
+<span class="cl" id="ln9">    <span class="kw">if</span> (<span class="vr">map</span>[s[right]] !== undefined) {      <span class="cm">// char is in t</span></span>
+<span class="cl" id="ln10">      <span class="vr">map</span>[s[right]]--;                     <span class="cm">// decrement count</span></span>
+<span class="cl" id="ln11">      <span class="kw">if</span> (<span class="vr">map</span>[s[right]] >= <span class="nm">0</span>) count++;    <span class="cm">// still needed → match!</span></span>
+<span class="cl" id="ln12">    }</span>
+<span class="cl" id="ln13">    <span class="kw">while</span> (count === t.length) {           <span class="cm">// valid window!</span></span>
+<span class="cl" id="ln14">      <span class="kw">if</span> (right - left + <span class="nm">1</span> &lt; minLen) {    <span class="cm">// new best?</span></span>
+<span class="cl" id="ln15">        minLen = right - left + <span class="nm">1</span>;</span>
+<span class="cl" id="ln16">        start = left;</span>
+<span class="cl" id="ln17">      }</span>
+<span class="cl" id="ln18">      <span class="kw">if</span> (<span class="vr">map</span>[s[left]] !== undefined) {    <span class="cm">// left char is in t</span></span>
+<span class="cl" id="ln19">        <span class="vr">map</span>[s[left]]++;                   <span class="cm">// restore count</span></span>
+<span class="cl" id="ln20">        <span class="kw">if</span> (<span class="vr">map</span>[s[left]] > <span class="nm">0</span>) count--;   <span class="cm">// was needed → unmatch</span></span>
+<span class="cl" id="ln21">      }</span>
+<span class="cl" id="ln22">      left++;                              <span class="cm">// shrink window</span></span>
+<span class="cl" id="ln23">    }</span>
+<span class="cl" id="ln24">  }</span>
+<span class="cl" id="ln25">  <span class="kw">return</span> minLen === <span class="nm">Infinity</span></span>
+<span class="cl" id="ln26">    ? <span class="nm">""</span></span>
+<span class="cl" id="ln27">    : s.<span class="fn">substring</span>(start, start + minLen);</span>
+<span class="cl" id="ln28">}</span></pre>
+    <div class="prog-row">
+      <span class="prog-lbl" id="stepLbl">0 / 0</span>
+      <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+</div>
+<script>
+// ── Step generator — mirrors the user's exact algorithm ─────
+function genSteps(s, t) {
+  const steps = [];
+  const n = s.length;
+
+  // Build initial map exactly as user does
+  const map = {};
+  for (const char of t) map[char] = (map[char] || 0) + 1;
+
+  // Snapshot of map values for the T-freq panel (never changes)
+  const tFreqInit = { ...map };
+
+  let left = 0, count = 0, minLen = Infinity, start = 0;
+  const workMap = { ...map }; // this is the live map that gets mutated
+
+  function snap(type, right, msg, line, litCls) {
+    steps.push({
+      s, t, n, left, right, count,
+      minLen, start,
+      map: { ...workMap },     // live map snapshot
+      tFreq: tFreqInit,        // original T freq (for reference panel)
+      type, msg, line, litCls
+    });
+  }
+
+  snap('init', 0,
+    `S = "<span class="hR">${s}</span>", T = "<span class="hb">${t}</span>". Built map: {${Object.entries(tFreqInit).map(([c,v])=>`${c}:${v}`).join(', ')}}. count tracks how many T-chars are matched. When count = t.length (${t.length}), window is valid.`,
+    'ln5', 'lit-exp');
+
+  for (let right = 0; right < n; right++) {
+    const ch = s[right];
+
+    if (workMap[ch] !== undefined) {
+      workMap[ch]--;
+      const countedIn = workMap[ch] >= 0;
+      if (countedIn) count++;
+
+      snap('expand', right,
+        countedIn
+          ? `<span class="hR">R→'${ch}'</span> [${right}] is in T. map['${ch}']-- → ${workMap[ch]}. <span class="hw">count++ = ${count}</span> (need ${t.length} to be valid).`
+          : `<span class="hR">R→'${ch}'</span> [${right}] in T but surplus — map['${ch}']-- → ${workMap[ch]} (negative = extra). count stays ${count}.`,
+        'ln9', 'lit-exp');
+    } else {
+      snap('expand', right,
+        `<span class="hR">R→'${ch}'</span> [${right}] is <span class="hm">not in T</span>. Skip. count = ${count}/${t.length}.`,
+        'ln8', 'lit-exp');
+    }
+
+    // shrink loop — count === t.length
+    while (count === t.length) {
+      const winLen = right - left + 1;
+      const isBest = winLen < minLen;
+      if (isBest) { minLen = winLen; start = left; }
+
+      snap(isBest ? 'best' : 'valid', right,
+        isBest
+          ? `<span class="hw">✓ count=${count} = t.length!</span> Window "<span class="hb">${s.slice(left, right+1)}</span>" len=${winLen}. <span class="hb">New best!</span> start=${left}. Now shrink left.`
+          : `<span class="hw">✓ Still valid!</span> Window "${s.slice(left, right+1)}" len=${winLen}. Best stays "${s.slice(start, start+minLen)}" (${minLen}). Shrink.`,
+        'ln13', isBest ? 'lit-best' : 'lit-exp');
+
+      const lc = s[left];
+      if (workMap[lc] !== undefined) {
+        workMap[lc]++;
+        const countedOut = workMap[lc] > 0;
+        if (countedOut) count--;
+
+        snap('shrink', right,
+          `<span class="hL">Shrink L</span>: s[${left}]='${lc}'. map['${lc}']++ → ${workMap[lc]}.${countedOut ? ` <span class="hd">map['${lc}'] > 0 → count-- = ${count}</span>. Window no longer valid.` : ` Still ≤ 0 (surplus removed). count stays ${count}.`} left→${left+1}.`,
+          'ln17', 'lit-shr');
+      } else {
+        snap('shrink', right,
+          `<span class="hL">Shrink L</span>: s[${left}]='${lc}' not in T. Skip map. left→${left+1}. count=${count}.`,
+          'ln19', 'lit-shr');
+      }
+
+      left++;
+    }
+  }
+
+  const ans = minLen === Infinity ? '""' : `"${s.substring(start, start + minLen)}"`;
+  snap('done', n - 1,
+    `<span class="hb">✓ Done!</span> Answer = <span class="hb">${ans}</span> (length ${minLen === Infinity ? 0 : minLen}). s.substring(${start}, ${start}+${minLen === Infinity ? 0 : minLen}).`,
+    'ln22', 'lit-best');
+
+  return steps;
+}
+
+// ── Render ──────────────────────────────────────────────────
+let steps = [], curStep = -1, timer = null, speed = 750;
+
+function renderStep(idx) {
+  if (idx < 0 || idx >= steps.length) return;
+  const st = steps[idx]; curStep = idx;
+  const { s, t, n, left, right, count, minLen, start, map, tFreq, type, msg, line, litCls } = st;
+  const isDone = type === 'done';
+  const isValid = type === 'valid' || type === 'best' || type === 'shrink';
+  const bestStr = minLen < Infinity ? s.substring(start, start + minLen) : null;
+
+  // Scorecards
+  document.getElementById('scL').textContent = left;
+  document.getElementById('scLc').textContent = `s[${left}]='${s[left] || ''}'`;
+  document.getElementById('scR').textContent = right;
+  document.getElementById('scRc').textContent = `s[${right}]='${s[right] || ''}'`;
+  document.getElementById('scFormed').textContent = count;
+  document.getElementById('scRequired').textContent = `of ${t.length} needed`;
+  document.getElementById('scBest').textContent = minLen < Infinity ? minLen : '∞';
+  document.getElementById('scBestStr').textContent = bestStr ? `"${bestStr}"` : '—';
+
+  // Char row
+  const charRow = document.getElementById('charRow');
+  const winBar = document.getElementById('winBar');
+  charRow.innerHTML = ''; winBar.innerHTML = '';
+
+  for (let i = 0; i < n; i++) {
+    const ch = s[i];
+    const cw = document.createElement('div'); cw.className = 'cw';
+
+    const pa = document.createElement('div');
+    const isL = i === left, isR = i === right;
+    if (isL && isR) { pa.className = 'pa pa-LR'; pa.textContent = 'L=R'; }
+    else if (isL) { pa.className = 'pa pa-L'; pa.textContent = 'L'; }
+    else if (isR) { pa.className = 'pa pa-R'; pa.textContent = 'R'; }
+    else { pa.className = 'pa-mt'; pa.textContent = '.'; }
+
+    const cell = document.createElement('div'); cell.className = 'cell';
+    cell.textContent = ch;
+    const inWin = i >= left && i <= right;
+    const isBestCell = isDone && bestStr && i >= start && i < start + minLen;
+
+    if (isDone) cell.classList.add(isBestCell ? 'c-best' : 'c-past');
+    else if (isL && isR) cell.classList.add('c-LR');
+    else if (i === right) cell.classList.add(isValid ? 'c-valid' : 'c-R');
+    else if (i === left && type === 'shrink') cell.classList.add('c-need');
+    else if (inWin) cell.classList.add(isValid ? 'c-valid' : 'c-win');
+    else if (i < left) cell.classList.add('c-past');
+
+    const ci = document.createElement('div'); ci.className = 'cidx'; ci.textContent = i;
+    cw.appendChild(pa); cw.appendChild(cell); cw.appendChild(ci);
+    charRow.appendChild(cw);
+
+    const ws = document.createElement('div'); ws.className = 'ws';
+    if (isDone && isBestCell) ws.classList.add('ws-best');
+    else if (isValid && inWin) ws.classList.add('ws-valid');
+    else if (inWin) ws.classList.add('ws-in');
+    winBar.appendChild(ws);
+  }
+
+  // T freq panel — original required counts
+  const tFreqRow = document.getElementById('tFreqRow');
+  tFreqRow.innerHTML = '';
+  Object.entries(tFreq).forEach(([ch, required]) => {
+    // map[ch] is decremented when chars enter window — satisfied when map[ch] <= 0
+    const mapVal = map[ch] !== undefined ? map[ch] : 0;
+    const satisfied = mapVal <= 0;
+    const fc = document.createElement('div'); fc.className = 'fc';
+    const fch = document.createElement('div'); fch.className = `fc-char ${satisfied ? 'fch-have' : 'fch-miss'}`;
+    fch.textContent = ch;
+    const fcnt = document.createElement('div'); fcnt.className = 'fc-cnt'; fcnt.textContent = `need:${required}`;
+    fc.appendChild(fch); fc.appendChild(fcnt);
+    tFreqRow.appendChild(fc);
+  });
+
+  // Window map panel — shows live map values
+  // map[ch] starts at tFreq[ch], decremented as chars enter window
+  // map[ch] = 0 → exactly met; <0 → surplus; >0 → still needed
+  const wFreqRow = document.getElementById('wFreqRow');
+  wFreqRow.innerHTML = '';
+  Object.entries(tFreq).forEach(([ch, required]) => {
+    const mapVal = map[ch] !== undefined ? map[ch] : required;
+    const inWindow = required - mapVal; // how many of this char are in window (capped at required)
+    const satisfied = mapVal <= 0;
+    const isCur = ch === s[right] && type === 'expand';
+    const fc = document.createElement('div'); fc.className = 'fc';
+    const fch = document.createElement('div'); fch.className = `fc-char ${isCur ? 'fch-cur' : satisfied ? 'fch-have' : 'fch-miss'}`;
+    fch.textContent = ch;
+    // show map value — explains the algorithm's core trick
+    const fcnt = document.createElement('div'); fcnt.className = 'fc-cnt';
+    fcnt.textContent = `map:${mapVal}`;
+    const fbar = document.createElement('div'); fbar.className = 'fc-bar';
+    const fbf = document.createElement('div'); fbf.className = `fc-bar-fill ${satisfied ? 'fb-have' : 'fb-miss'}`;
+    fbf.style.width = `${Math.min(100, Math.max(0, ((required - Math.max(mapVal,0)) / required) * 100))}%`;
+    fbar.appendChild(fbf);
+    fc.appendChild(fch); fc.appendChild(fcnt); fc.appendChild(fbar);
+    wFreqRow.appendChild(fc);
+  });
+
+  document.getElementById('fsHave').textContent = count;
+  document.getElementById('fsNeed').textContent = t.length;
+
+  // Status
+  const sc = document.getElementById('statusCard');
+  sc.innerHTML = msg;
+  sc.className = 'status-card ' + (
+    type === 'shrink' ? 'sc-shrink' :
+    type === 'best' || type === 'done' ? 'sc-best' :
+    isValid ? 'sc-expand' : 'sc-expand'
+  );
+
+  // Code highlight
+  document.querySelectorAll('.cl').forEach(el => el.className = 'cl');
+  if (line) { const el = document.getElementById(line); if (el) el.classList.add(litCls); }
+
+  // Progress
+  document.getElementById('stepLbl').textContent = `${idx + 1} / ${steps.length}`;
+  document.getElementById('progFill').style.width = `${((idx + 1) / steps.length) * 100}%`;
+}
+
+function parse() {
+  return {
+    s: document.getElementById('inS').value.trim().toUpperCase(),
+    t: document.getElementById('inT').value.trim().toUpperCase()
+  };
+}
+function build() {
+  const { s, t } = parse();
+  if (!s || !t) { alert('Enter both S and T.'); return false; }
+  steps = genSteps(s, t); curStep = -1; return true;
+}
+
+window.resetAll  = function () { clearTimeout(timer); timer = null; if (!build()) return; renderStep(0); };
+window.stepFwd   = function () { clearTimeout(timer); timer = null; if (!steps.length) { if (!build()) return; } if (curStep < steps.length - 1) renderStep(curStep + 1); };
+window.startAuto = function () {
+  if (!steps.length || curStep >= steps.length - 1) { if (!build()) return; renderStep(0); }
+  clearTimeout(timer);
+  function tick() { if (curStep < steps.length - 1) { renderStep(curStep + 1); timer = setTimeout(tick, speed); } }
+  timer = setTimeout(tick, speed);
+};
+window.setSpd = function (ms) {
+  speed = ms;
+  ['ss','sm','sf'].forEach(id => document.getElementById(id).classList.remove('on'));
+  if (ms === 1400) document.getElementById('ss').classList.add('on');
+  else if (ms === 750) document.getElementById('sm').classList.add('on');
+  else document.getElementById('sf').classList.add('on');
+};
+
+window.addEventListener('DOMContentLoaded', () => { build(); renderStep(0); });
+</script>
+</body>
+</html>

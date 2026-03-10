@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Longest Substring — Sliding Window</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07080d;
+  --s1:#0c0e16;
+  --s2:#10121c;
+  --bd:#181c2e;
+  --bd2:#202540;
+  --L:#3b82f6;    /* left ptr  – blue    */
+  --R:#f59e0b;    /* right ptr – amber   */
+  --win:#22c55e;  /* window    – green   */
+  --dup:#ef4444;  /* duplicate – red     */
+  --best:#a855f7; /* best      – violet  */
+  --char:#e2e8f0; /* char text           */
+  --text:#c8d4f0;
+  --muted:#2e3a58;
+  --muted2:#4a5878;
+  --mono:'JetBrains Mono',monospace;
+  --serif:'Instrument Serif',serif;
+  --sans:'DM Sans',sans-serif;
+}
+body{
+  background:var(--bg);color:var(--text);font-family:var(--sans);
+  min-height:100vh;padding:36px 16px 80px;
+  background-image:
+    radial-gradient(ellipse 55% 35% at 20% 0%,rgba(59,130,246,.06) 0%,transparent 60%),
+    radial-gradient(ellipse 45% 30% at 80% 100%,rgba(168,85,247,.05) 0%,transparent 60%);
+}
+.page{max-width:980px;margin:0 auto}
+
+/* ── Header ── */
+.hdr{margin-bottom:30px;animation:up .45s ease forwards}
+.tag-row{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap}
+.tag{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:3px 10px;border-radius:3px;border:1px solid}
+.te{color:#f97316;border-color:rgba(249,115,22,.3);background:rgba(249,115,22,.05)}
+.ts{color:var(--L);border-color:rgba(59,130,246,.3);background:rgba(59,130,246,.05)}
+.tt{color:var(--win);border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.04)}
+h1{font-family:var(--serif);font-size:clamp(28px,5.5vw,58px);line-height:.95;letter-spacing:-.5px}
+h1 em{font-style:italic;color:var(--R)}
+h1 span{color:var(--win)}
+.sub{font-family:var(--mono);font-size:11px;color:var(--muted2);margin-top:10px}
+
+/* ── Controls ── */
+.top-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:22px;animation:up .45s ease .1s forwards;opacity:0}
+.in-box{display:flex;align-items:center;gap:8px;background:var(--s1);border:1.5px solid var(--bd2);border-radius:8px;padding:8px 14px;flex:1;min-width:240px}
+.in-box label{font-family:var(--mono);font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:2px;white-space:nowrap}
+.in-box input{flex:1;font-family:var(--mono);font-size:15px;background:transparent;border:none;color:var(--text);outline:none;letter-spacing:2px}
+.btn{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border:none;border-radius:7px;padding:10px 18px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{transform:translateY(-1px);opacity:.85}
+.btn-play{background:linear-gradient(135deg,var(--L),var(--best));color:#fff}
+.btn-step{background:var(--s2);color:var(--R);border:1.5px solid var(--R)}
+.btn-rst{background:var(--s2);color:var(--muted2);border:1.5px solid var(--bd2)}
+.spd-row{display:flex;align-items:center;gap:5px}
+.spd-lbl{font-family:var(--mono);font-size:9px;color:var(--muted2)}
+.sb{font-family:var(--mono);font-size:10px;background:var(--s2);border:1px solid var(--bd2);color:var(--muted2);border-radius:4px;padding:4px 9px;cursor:pointer;transition:all .15s}
+.sb.on{border-color:var(--L);color:var(--L)}
+
+/* ── Scoreboard ── */
+.score-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;animation:up .45s ease .15s forwards;opacity:0}
+@media(max-width:560px){.score-row{grid-template-columns:1fr 1fr}}
+.sc{background:var(--s1);border:1.5px solid var(--bd2);border-radius:12px;padding:16px 18px}
+.sc-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.sc-val{font-family:var(--mono);font-size:34px;font-weight:700;line-height:1;transition:all .3s}
+.sc-sub{font-family:var(--mono);font-size:10px;margin-top:5px;color:var(--muted2)}
+.lbl-L{color:var(--L)}.val-L{color:var(--L)}
+.lbl-R{color:var(--R)}.val-R{color:var(--R)}
+.lbl-B{color:var(--best)}.val-B{color:var(--best)}
+
+/* ── String display ── */
+.str-card{
+  background:var(--s1);border:1.5px solid var(--bd2);border-radius:14px;
+  padding:24px;margin-bottom:14px;
+  animation:up .45s ease .2s forwards;opacity:0;overflow-x:auto;
+}
+.sec-lbl{font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px}
+
+.char-row{display:flex;gap:7px;flex-wrap:nowrap;min-width:fit-content;margin-bottom:8px}
+.cw{display:flex;flex-direction:column;align-items:center;gap:5px}
+
+.char-cell{
+  width:54px;height:54px;border-radius:9px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:24px;font-weight:700;
+  border:2px solid var(--bd);background:var(--s2);color:var(--muted2);
+  transition:all .28s ease;position:relative;
+}
+
+/* states */
+.char-cell.cc-win{
+  border-color:var(--win);background:rgba(34,197,94,.08);color:var(--win);
+}
+.char-cell.cc-L{
+  border-color:var(--L);background:rgba(59,130,246,.12);color:var(--L);
+  box-shadow:0 0 18px rgba(59,130,246,.2);animation:lp .6s ease infinite alternate;
+}
+.char-cell.cc-R{
+  border-color:var(--R);background:rgba(245,158,11,.1);color:var(--R);
+  box-shadow:0 0 18px rgba(245,158,11,.2);animation:rp .6s ease infinite alternate;
+}
+.char-cell.cc-LR{
+  border-color:var(--win);background:rgba(34,197,94,.1);color:var(--win);
+  box-shadow:0 0 20px rgba(34,197,94,.2);
+}
+.char-cell.cc-dup{
+  border-color:var(--dup);background:rgba(239,68,68,.1);color:var(--dup);
+  box-shadow:0 0 20px rgba(239,68,68,.2);animation:shake .35s ease;
+}
+.char-cell.cc-shrink{
+  border-color:var(--L);background:rgba(59,130,246,.06);color:var(--L);
+  opacity:.6;
+}
+.char-cell.cc-best{
+  border-color:var(--best);background:rgba(168,85,247,.08);color:var(--best);
+}
+.char-cell.cc-done{
+  border-color:var(--best);background:rgba(168,85,247,.1);color:var(--best);
+  animation:winPop .4s ease;
+}
+.char-cell.cc-past{border-color:var(--bd);background:var(--bg);color:var(--muted)}
+
+@keyframes lp{from{box-shadow:0 0 8px rgba(59,130,246,.1)}to{box-shadow:0 0 24px rgba(59,130,246,.35)}}
+@keyframes rp{from{box-shadow:0 0 8px rgba(245,158,11,.1)}to{box-shadow:0 0 24px rgba(245,158,11,.3)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@keyframes winPop{from{transform:scale(.8);opacity:.3}to{transform:scale(1);opacity:1}}
+
+/* pointer labels */
+.pa{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap}
+.pa-L{background:rgba(59,130,246,.15);color:var(--L)}
+.pa-R{background:rgba(245,158,11,.12);color:var(--R)}
+.pa-LR{background:rgba(34,197,94,.12);color:var(--win)}
+.pa-empty{visibility:hidden}
+.cidx{font-family:var(--mono);font-size:8px;color:var(--muted2)}
+
+/* window bracket under chars */
+.win-track{display:flex;gap:7px;flex-wrap:nowrap;min-width:fit-content;margin-top:2px}
+.ws{width:54px;height:5px;border-radius:2px;background:transparent;flex-shrink:0;transition:all .3s}
+.ws.ws-in{background:var(--win)}
+.ws.ws-best{background:var(--best)}
+.ws.ws-dup{background:var(--dup)}
+
+/* ── Set display ── */
+.set-card{
+  background:var(--s1);border:1.5px solid var(--bd2);border-radius:14px;
+  padding:20px 24px;margin-bottom:14px;
+  animation:up .45s ease .25s forwards;opacity:0;
+}
+.set-row{display:flex;gap:8px;flex-wrap:wrap;min-height:40px;align-items:center}
+.set-chip{
+  font-family:var(--mono);font-size:15px;font-weight:700;
+  width:42px;height:42px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  border:1.5px solid var(--win);background:rgba(34,197,94,.08);color:var(--win);
+  animation:chipIn .25s ease;transition:all .25s;
+}
+.set-chip.sc-dup{border-color:var(--dup);background:rgba(239,68,68,.1);color:var(--dup);animation:shake .35s ease}
+.set-chip.sc-new{border-color:var(--R);background:rgba(245,158,11,.1);color:var(--R);animation:chipIn .25s ease}
+.set-chip.sc-best{border-color:var(--best);background:rgba(168,85,247,.1);color:var(--best)}
+@keyframes chipIn{from{transform:scale(.6) rotate(-10deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+.set-empty{font-family:var(--mono);font-size:11px;color:var(--muted2);font-style:italic}
+
+/* ── Status ── */
+.status-card{
+  background:var(--s1);border:1.5px solid var(--bd2);border-radius:12px;
+  padding:15px 20px;margin-bottom:14px;font-family:var(--mono);font-size:12.5px;
+  line-height:1.75;min-height:56px;border-left:5px solid var(--bd2);transition:border-color .3s;
+  animation:up .45s ease .3s forwards;opacity:0;
+}
+.sc-expand{border-left-color:var(--win)}
+.sc-shrink{border-left-color:var(--dup)}
+.sc-best{border-left-color:var(--best)}
+.hL{color:var(--L);font-weight:700}
+.hR{color:var(--R);font-weight:700}
+.hw{color:var(--win);font-weight:700}
+.hd{color:var(--dup);font-weight:700}
+.hb{color:var(--best);font-weight:700}
+
+/* ── Code ── */
+.code-card{background:#030408;border:1.5px solid var(--bd2);border-radius:14px;overflow:hidden;animation:up .45s ease .35s forwards;opacity:0}
+.code-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;border-bottom:1px solid var(--bd);background:#020307}
+.code-hdr span{font-family:var(--mono);font-size:11px;color:var(--muted2)}
+.dots{display:flex;gap:5px}.dot{width:9px;height:9px;border-radius:50%}
+pre{padding:22px 24px;font-family:var(--mono);font-size:12.5px;line-height:1.9;color:#3a4a68;overflow-x:auto}
+.kw{color:#c792ea}.fn{color:#82aaff}.vr{color:#ffcb6b}.nm{color:#f78c6c}.cm{color:#1c2840;font-style:italic}
+.cl{display:block;border-radius:3px;padding:0 6px;margin:0 -6px;transition:background .2s}
+.cl.lit-exp{background:rgba(34,197,94,.07);border-left:2px solid var(--win);padding-left:10px;margin-left:-10px;color:#90d8a8}
+.cl.lit-shr{background:rgba(239,68,68,.07);border-left:2px solid var(--dup);padding-left:10px;margin-left:-10px;color:#e8a8a0}
+.cl.lit-best{background:rgba(168,85,247,.07);border-left:2px solid var(--best);padding-left:10px;margin-left:-10px;color:#c8a8e8}
+
+.prog-row{display:flex;align-items:center;gap:10px;padding:0 24px 14px}
+.prog-lbl{font-family:var(--mono);font-size:10px;color:var(--muted2);white-space:nowrap}
+.prog-track{flex:1;height:3px;background:var(--bd);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--L),var(--best));transition:width .3s}
+
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="tag-row">
+      <span class="tag te">Every Interview</span>
+      <span class="tag ts">Sliding Window</span>
+      <span class="tag tt">String · T1</span>
+    </div>
+    <h1>Longest Substring<br/><span>Without</span> <em>Repeating</em></h1>
+    <p class="sub">Sliding window · Set tracks unique chars · O(n) time · O(k) space</p>
+  </div>
+
+  <!-- Controls -->
+  <div class="top-bar">
+    <div class="in-box">
+      <label>String</label>
+      <input id="inStr" value="abcabcbb" maxlength="20"/>
+    </div>
+    <button class="btn btn-play" onclick="window.startAuto()">▶ Play</button>
+    <button class="btn btn-step" onclick="window.stepFwd()">Step →</button>
+    <button class="btn btn-rst"  onclick="window.resetAll()">↺ Reset</button>
+    <div class="spd-row">
+      <span class="spd-lbl">Speed</span>
+      <button class="sb" onclick="window.setSpd(1300)" id="ss">Slow</button>
+      <button class="sb on" onclick="window.setSpd(700)" id="sm">Med</button>
+      <button class="sb" onclick="window.setSpd(180)" id="sf">Fast</button>
+    </div>
+  </div>
+
+  <!-- Scoreboard -->
+  <div class="score-row">
+    <div class="sc">
+      <div class="sc-lbl lbl-L">Left Ptr</div>
+      <div class="sc-val val-L" id="scL">0</div>
+      <div class="sc-sub" id="scLchar">char: —</div>
+    </div>
+    <div class="sc">
+      <div class="sc-lbl lbl-R">Right Ptr</div>
+      <div class="sc-val val-R" id="scR">0</div>
+      <div class="sc-sub" id="scRchar">char: —</div>
+    </div>
+    <div class="sc">
+      <div class="sc-lbl lbl-B">Best Length</div>
+      <div class="sc-val val-B" id="scBest">0</div>
+      <div class="sc-sub" id="scBestStr">substr: —</div>
+    </div>
+  </div>
+
+  <!-- String display -->
+  <div class="str-card">
+    <div class="sec-lbl">String — Sliding Window</div>
+    <div class="char-row" id="charRow"></div>
+    <div class="win-track" id="winTrack"></div>
+  </div>
+
+  <!-- Set display -->
+  <div class="set-card">
+    <div class="sec-lbl" style="margin-bottom:10px">Current Window Set (unique chars)</div>
+    <div class="set-row" id="setRow"><span class="set-empty">Empty</span></div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-card" id="statusCard">Press ▶ Play or Step → to begin.</div>
+
+  <!-- Code -->
+  <div class="code-card">
+    <div class="code-hdr">
+      <div class="dots">
+        <div class="dot" style="background:#f06060"></div>
+        <div class="dot" style="background:#f0c040"></div>
+        <div class="dot" style="background:#4af0a0"></div>
+      </div>
+      <span>lengthOfLongestSubstring.js</span>
+    </div>
+    <pre>
+<span class="cl" id="ln0"><span class="kw">function</span> <span class="fn">lengthOfLongestSubstring</span>(s) {</span>
+<span class="cl" id="ln1">  <span class="kw">let</span> <span class="vr">left</span> = <span class="nm">0</span>;</span>
+<span class="cl" id="ln2">  <span class="kw">let</span> <span class="vr">maxLen</span> = <span class="nm">0</span>;</span>
+<span class="cl" id="ln3">  <span class="kw">const</span> <span class="vr">set</span> = <span class="kw">new</span> <span class="fn">Set</span>();</span>
+<span class="cl" id="ln4"> </span>
+<span class="cl" id="ln5">  <span class="kw">for</span> (<span class="kw">let</span> <span class="vr">right</span> = <span class="nm">0</span>; right &lt; s.length; right++) {</span>
+<span class="cl" id="ln6"> </span>
+<span class="cl" id="ln7">    <span class="cm">// shrink window until no duplicate</span></span>
+<span class="cl" id="ln8">    <span class="kw">while</span> (<span class="vr">set</span>.<span class="fn">has</span>(s[<span class="vr">right</span>])) {</span>
+<span class="cl" id="ln9">      <span class="vr">set</span>.<span class="fn">delete</span>(s[<span class="vr">left</span>]);   <span class="cm">// remove left char</span></span>
+<span class="cl" id="ln10">      <span class="vr">left</span>++;               <span class="cm">// shrink from left</span></span>
+<span class="cl" id="ln11">    }</span>
+<span class="cl" id="ln12"> </span>
+<span class="cl" id="ln13">    <span class="vr">set</span>.<span class="fn">add</span>(s[<span class="vr">right</span>]);       <span class="cm">// expand: add right char</span></span>
+<span class="cl" id="ln14">    <span class="vr">maxLen</span> = Math.<span class="fn">max</span>(<span class="vr">maxLen</span>, <span class="vr">right</span> - <span class="vr">left</span> + <span class="nm">1</span>);</span>
+<span class="cl" id="ln15">  }</span>
+<span class="cl" id="ln16"> </span>
+<span class="cl" id="ln17">  <span class="kw">return</span> <span class="vr">maxLen</span>;</span>
+<span class="cl" id="ln18">}</span></pre>
+    <div class="prog-row">
+      <span class="prog-lbl" id="stepLbl">0 / 0</span>
+      <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function genSteps(s) {
+  const n = s.length;
+  const steps = [];
+  let left = 0, maxLen = 0, bestL = 0, bestR = -1;
+  const set = new Set();
+
+  function snap(type, right, dupChar, msg, line, litCls) {
+    steps.push({
+      s, n, left, right, maxLen, bestL, bestR,
+      winSet: [...set], type, dupChar, msg, line, litCls
+    });
+  }
+
+  snap('init', 0, null,
+    `Init: <span class="hL">left=0</span>, maxLen=0, set={}. Right pointer will scan every character.`,
+    'ln1', 'lit-exp');
+
+  for (let right = 0; right < n; right++) {
+    const ch = s[right];
+
+    // shrink phase
+    while (set.has(ch)) {
+      const rem = s[left];
+      snap('shrink', right, ch,
+        `<span class="hd">Duplicate '${ch}'</span> at right=${right}. Remove '<span class="hL">${rem}</span>' (left=${left}) from set. Shrink window.`,
+        'ln9', 'lit-shr');
+      set.delete(rem);
+      left++;
+    }
+
+    // expand
+    set.add(ch);
+    const winLen = right - left + 1;
+    const newBest = winLen > maxLen;
+    if (newBest) { maxLen = winLen; bestL = left; bestR = right; }
+
+    snap(newBest ? 'best' : 'expand', right, null,
+      newBest
+        ? `<span class="hw">Add '${ch}'</span> → window [${left}..${right}] = "<span class="hb">${s.slice(left, right+1)}</span>" (len=${winLen}). <span class="hb">New best!</span>`
+        : `<span class="hw">Add '${ch}'</span> → window [${left}..${right}] = "${s.slice(left, right+1)}" (len=${winLen}). Best stays ${maxLen}.`,
+      'ln13', newBest ? 'lit-best' : 'lit-exp');
+  }
+
+  snap('done', n - 1, null,
+    `<span class="hb">✓ Done!</span> Longest = <span class="hb">${maxLen}</span> → "<span class="hb">${s.slice(bestL, bestR+1)}</span>"`,
+    'ln17', 'lit-best');
+
+  return steps;
+}
+
+// ── Render ──────────────────────────────────────────────────
+let steps = [], curStep = -1, timer = null, speed = 700;
+
+function renderStep(idx) {
+  if (idx < 0 || idx >= steps.length) return;
+  const st = steps[idx]; curStep = idx;
+  const { s, n, left, right, maxLen, bestL, bestR, winSet, type, dupChar, msg, line, litCls } = st;
+  const isDone = type === 'done';
+
+  // Scoreboard
+  document.getElementById('scL').textContent = left;
+  document.getElementById('scLchar').textContent = `char: '${s[left] || ''}'`;
+  document.getElementById('scR').textContent = right;
+  document.getElementById('scRchar').textContent = `char: '${s[right] || ''}'`;
+  document.getElementById('scBest').textContent = maxLen;
+  document.getElementById('scBestStr').textContent = maxLen > 0 ? `"${s.slice(bestL, bestR + 1)}"` : '—';
+
+  // Char row
+  const charRow = document.getElementById('charRow');
+  const winTrack = document.getElementById('winTrack');
+  charRow.innerHTML = ''; winTrack.innerHTML = '';
+
+  for (let i = 0; i < n; i++) {
+    const ch = s[i];
+    const cw = document.createElement('div'); cw.className = 'cw';
+
+    // pointer arrow
+    const pa = document.createElement('div');
+    const isL = i === left, isR = i === right;
+    if (isL && isR) { pa.className = 'pa pa-LR'; pa.textContent = 'L=R'; }
+    else if (isL) { pa.className = 'pa pa-L'; pa.textContent = 'L'; }
+    else if (isR) { pa.className = 'pa pa-R'; pa.textContent = 'R'; }
+    else { pa.className = 'pa-empty'; pa.textContent = '.'; }
+
+    // cell
+    const cell = document.createElement('div'); cell.className = 'char-cell';
+    cell.textContent = ch;
+    const inWin = i >= left && i <= right;
+    const isBestWin = isDone && i >= bestL && i <= bestR;
+
+    if (isDone) {
+      cell.classList.add(isBestWin ? 'cc-done' : 'cc-past');
+    } else if (isL && isR) {
+      cell.classList.add('cc-LR');
+    } else if (i === right) {
+      cell.classList.add(type === 'shrink' ? 'cc-dup' : 'cc-R');
+    } else if (i === left && type === 'shrink') {
+      cell.classList.add('cc-shrink');
+    } else if (inWin) {
+      cell.classList.add(type === 'best' ? 'cc-best' : 'cc-win');
+    } else if (i < left) {
+      cell.classList.add('cc-past');
+    }
+
+    const ci = document.createElement('div'); ci.className = 'cidx'; ci.textContent = i;
+    cw.appendChild(pa); cw.appendChild(cell); cw.appendChild(ci);
+    charRow.appendChild(cw);
+
+    // window bracket seg
+    const ws = document.createElement('div'); ws.className = 'ws';
+    if (isDone && isBestWin) ws.classList.add('ws-best');
+    else if (inWin && type === 'shrink') ws.classList.add('ws-dup');
+    else if (inWin) ws.classList.add('ws-in');
+    winTrack.appendChild(ws);
+  }
+
+  // Set display
+  const setRow = document.getElementById('setRow');
+  setRow.innerHTML = '';
+  if (winSet.length === 0) {
+    setRow.innerHTML = '<span class="set-empty">Empty</span>';
+  } else {
+    winSet.forEach(ch => {
+      const chip = document.createElement('div');
+      chip.className = 'set-chip';
+      if (ch === dupChar) chip.classList.add('sc-dup');
+      else if (isDone) chip.classList.add('sc-best');
+      else if (ch === s[right]) chip.classList.add('sc-new');
+      chip.textContent = ch;
+      setRow.appendChild(chip);
+    });
+  }
+
+  // Status
+  const sc = document.getElementById('statusCard');
+  sc.innerHTML = msg;
+  sc.className = 'status-card ' +
+    (type === 'shrink' ? 'sc-shrink' : type === 'best' || type === 'done' ? 'sc-best' : 'sc-expand');
+
+  // Code
+  document.querySelectorAll('.cl').forEach(el => el.className = 'cl');
+  if (line) { const el = document.getElementById(line); if (el) el.classList.add(litCls); }
+
+  // Progress
+  document.getElementById('stepLbl').textContent = `${idx + 1} / ${steps.length}`;
+  document.getElementById('progFill').style.width = `${((idx + 1) / steps.length) * 100}%`;
+}
+
+function parse() { return document.getElementById('inStr').value.trim(); }
+function build() {
+  const str = parse();
+  if (!str.length) { alert('Enter a string.'); return false; }
+  steps = genSteps(str); curStep = -1; return true;
+}
+
+window.resetAll  = function () { clearTimeout(timer); timer = null; if (!build()) return; renderStep(0); };
+window.stepFwd   = function () { clearTimeout(timer); timer = null; if (!steps.length) { if (!build()) return; } if (curStep < steps.length - 1) renderStep(curStep + 1); };
+window.startAuto = function () {
+  if (!steps.length || curStep >= steps.length - 1) { if (!build()) return; renderStep(0); }
+  clearTimeout(timer);
+  function tick() { if (curStep < steps.length - 1) { renderStep(curStep + 1); timer = setTimeout(tick, speed); } }
+  timer = setTimeout(tick, speed);
+};
+window.setSpd = function (ms) {
+  speed = ms;
+  ['ss', 'sm', 'sf'].forEach(id => document.getElementById(id).classList.remove('on'));
+  if (ms === 1300) document.getElementById('ss').classList.add('on');
+  else if (ms === 700) document.getElementById('sm').classList.add('on');
+  else document.getElementById('sf').classList.add('on');
+};
+
+window.addEventListener('DOMContentLoaded', () => { build(); renderStep(0); });
+</script>
+</body>
+</html>

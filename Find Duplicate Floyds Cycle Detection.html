@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Find Duplicate — Floyd's Cycle Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Raleway:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f5f0;
+  --s1:#f0ebe2;
+  --s2:#e8e0d4;
+  --bd:#cfc5b4;
+  --bd2:#b8ac98;
+  --ink:#1c1712;
+  --muted:#7a7060;
+  --muted2:#a09080;
+  --slow:#1a6b8a;   /* slow ptr  – teal   */
+  --fast:#b5430d;   /* fast ptr  – rust   */
+  --meet:#2d6a2d;   /* meeting   – green  */
+  --dup:#8b1a6b;    /* duplicate – plum   */
+  --p1:#0e52a0;     /* phase 1   – navy   */
+  --p2:#7a3000;     /* phase 2   – brown  */
+  --node-def:#e8e0d4;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Raleway',sans-serif;
+}
+body{
+  background:var(--bg);color:var(--ink);font-family:var(--sans);
+  min-height:100vh;padding:36px 16px 80px;
+  background-image:radial-gradient(ellipse 80% 30% at 50% 0%,rgba(26,107,138,.04) 0%,transparent 60%);
+}
+.page{max-width:980px;margin:0 auto}
+
+/* ── Header ── */
+.hdr{margin-bottom:30px;animation:up .4s ease forwards;border-bottom:2px solid var(--ink);padding-bottom:18px}
+.tag-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.tag{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:3px 10px;border-radius:2px;border:1.5px solid}
+.tm{color:#b5430d;border-color:rgba(181,67,13,.4);background:rgba(181,67,13,.06)}
+.tf{color:var(--slow);border-color:rgba(26,107,138,.35);background:rgba(26,107,138,.05)}
+.ta{color:var(--dup);border-color:rgba(139,26,107,.3);background:rgba(139,26,107,.05)}
+h1{font-size:clamp(26px,5vw,52px);font-weight:900;line-height:.95;letter-spacing:-1.5px}
+h1 .d{color:var(--dup)}
+h1 .f{color:var(--slow);font-style:italic}
+.sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px}
+
+/* ── Controls ── */
+.top-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:22px;animation:up .4s ease .1s forwards;opacity:0}
+.in-box{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--bd2);border-radius:7px;padding:8px 14px;flex:1;min-width:220px}
+.in-box label{font-family:var(--mono);font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:2px;white-space:nowrap}
+.in-box input{flex:1;font-family:var(--mono);font-size:14px;background:transparent;border:none;color:var(--ink);outline:none}
+.btn{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border:none;border-radius:7px;padding:10px 18px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{transform:translateY(-1px);opacity:.85}
+.btn-play{background:var(--ink);color:#fff}
+.btn-step{background:#fff;color:var(--slow);border:1.5px solid var(--slow)}
+.btn-rst{background:#fff;color:var(--muted);border:1.5px solid var(--bd2)}
+.spd-row{display:flex;align-items:center;gap:5px}
+.spd-lbl{font-family:var(--mono);font-size:9px;color:var(--muted2)}
+.sb{font-family:var(--mono);font-size:10px;background:#fff;border:1px solid var(--bd);color:var(--muted);border-radius:4px;padding:4px 9px;cursor:pointer;transition:all .15s}
+.sb.on{border-color:var(--slow);color:var(--slow)}
+
+/* ── Phase banner ── */
+.phase-banner{
+  display:flex;gap:0;background:#fff;border:1.5px solid var(--bd2);border-radius:10px;
+  padding:4px;margin-bottom:18px;animation:up .4s ease .15s forwards;opacity:0;
+}
+.phase{flex:1;padding:9px 8px;border-radius:7px;text-align:center;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.3px;color:var(--muted2);transition:all .3s;border:1px solid transparent}
+.ph1.on{background:rgba(14,82,160,.08);color:var(--p1);border-color:rgba(14,82,160,.2)}
+.ph2.on{background:rgba(122,48,0,.07);color:var(--p2);border-color:rgba(122,48,0,.2)}
+.phd.on{background:rgba(139,26,107,.08);color:var(--dup);border-color:rgba(139,26,107,.2)}
+
+/* ── LINKED LIST VISUAL ── */
+.list-card{
+  background:#fff;border:2px solid var(--bd2);border-radius:14px;
+  padding:24px;margin-bottom:16px;
+  animation:up .4s ease .2s forwards;opacity:0;overflow-x:auto;
+}
+.sec-lbl{font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px}
+
+.linked-list{display:flex;align-items:center;gap:0;flex-wrap:nowrap;min-width:fit-content;position:relative}
+
+.node-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;position:relative}
+
+.node{
+  width:64px;height:64px;border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:var(--mono);font-weight:700;
+  border:2.5px solid var(--bd2);background:var(--node-def);color:var(--muted);
+  transition:all .3s ease;position:relative;flex-shrink:0;cursor:default;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);
+}
+.node .nval{font-size:20px;line-height:1}
+.node .nidx{font-size:8px;color:var(--muted2);margin-top:1px}
+
+/* pointer to next */
+.node .next-arrow{
+  position:absolute;right:-22px;top:50%;transform:translateY(-50%);
+  font-size:18px;color:var(--bd2);font-weight:900;z-index:2;
+}
+
+/* arrow connector between nodes */
+.arrow-conn{
+  display:flex;align-items:center;justify-content:center;
+  width:28px;flex-shrink:0;position:relative;
+}
+.arrow-conn svg{overflow:visible}
+
+/* node states */
+.node.n-slow{border-color:var(--slow);background:rgba(26,107,138,.1);color:var(--slow);box-shadow:0 0 18px rgba(26,107,138,.2);animation:np .6s ease infinite alternate}
+.node.n-fast{border-color:var(--fast);background:rgba(181,67,13,.09);color:var(--fast);box-shadow:0 0 18px rgba(181,67,13,.18);animation:np2 .6s ease infinite alternate}
+.node.n-both{border-color:var(--meet);background:rgba(45,106,45,.1);color:var(--meet);box-shadow:0 0 24px rgba(45,106,45,.25);animation:meet .5s ease}
+.node.n-p2slow{border-color:var(--slow);background:rgba(26,107,138,.1);color:var(--slow);box-shadow:0 0 18px rgba(26,107,138,.2);animation:np .6s ease infinite alternate}
+.node.n-p2fast{border-color:var(--fast);background:rgba(181,67,13,.09);color:var(--fast);box-shadow:0 0 18px rgba(181,67,13,.18);animation:np2 .6s ease infinite alternate}
+.node.n-dup{border-color:var(--dup);background:rgba(139,26,107,.1);color:var(--dup);box-shadow:0 0 28px rgba(139,26,107,.28);animation:dup .5s ease}
+.node.n-trail{border-color:rgba(26,107,138,.3);background:rgba(26,107,138,.04);color:var(--slow)}
+.node.n-visited{border-color:var(--bd);background:var(--s2);color:var(--muted2)}
+
+@keyframes np{from{box-shadow:0 0 8px rgba(26,107,138,.1)}to{box-shadow:0 0 24px rgba(26,107,138,.3)}}
+@keyframes np2{from{box-shadow:0 0 8px rgba(181,67,13,.1)}to{box-shadow:0 0 24px rgba(181,67,13,.28)}}
+@keyframes meet{from{transform:scale(.85);opacity:.5}to{transform:scale(1);opacity:1}}
+@keyframes dup{0%{transform:scale(.8)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+
+/* pointer labels under node */
+.node-ptrs{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;min-height:18px}
+.ptr-lbl{font-family:var(--mono);font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px}
+.pl-slow{background:rgba(26,107,138,.12);color:var(--slow)}
+.pl-fast{background:rgba(181,67,13,.1);color:var(--fast)}
+.pl-meet{background:rgba(45,106,45,.1);color:var(--meet)}
+.pl-dup{background:rgba(139,26,107,.12);color:var(--dup)}
+
+/* cycle indicator arc */
+.cycle-wrap{position:relative;margin-top:4px}
+.cycle-label{
+  font-family:var(--mono);font-size:9px;color:var(--dup);letter-spacing:1px;
+  border:1px solid rgba(139,26,107,.3);border-radius:3px;padding:2px 6px;
+  background:rgba(139,26,107,.06);
+}
+
+/* ── Array index → value map ── */
+.map-card{
+  background:#fff;border:2px solid var(--bd2);border-radius:12px;
+  padding:20px 24px;margin-bottom:16px;
+  animation:up .4s ease .25s forwards;opacity:0;overflow-x:auto;
+}
+.map-row{display:flex;gap:6px;flex-wrap:nowrap;min-width:fit-content;margin-bottom:8px}
+.map-cell{
+  display:flex;flex-direction:column;align-items:center;gap:3px;width:52px;flex-shrink:0;
+}
+.mc-idx{font-family:var(--mono);font-size:9px;color:var(--muted2);text-align:center}
+.mc-val{
+  width:52px;height:48px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:17px;font-weight:700;
+  border:2px solid var(--bd);background:var(--s1);color:var(--ink);
+  transition:all .25s;
+}
+.mc-arrow{font-size:11px;color:var(--muted2);font-family:var(--mono)}
+.mc-val.mc-slow{border-color:var(--slow);background:rgba(26,107,138,.08);color:var(--slow)}
+.mc-val.mc-fast{border-color:var(--fast);background:rgba(181,67,13,.08);color:var(--fast)}
+.mc-val.mc-both{border-color:var(--meet);background:rgba(45,106,45,.08);color:var(--meet)}
+.mc-val.mc-dup{border-color:var(--dup);background:rgba(139,26,107,.1);color:var(--dup);animation:dup .4s ease}
+
+/* ── Pointers display ── */
+.ptr-card{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;
+  animation:up .4s ease .28s forwards;opacity:0;
+}
+@media(max-width:540px){.ptr-card{grid-template-columns:1fr}}
+.pc{background:#fff;border:2px solid var(--bd2);border-radius:10px;padding:16px 18px}
+.pc-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px}
+.pc-val{font-family:var(--mono);font-size:28px;font-weight:700;line-height:1;transition:all .3s}
+.pc-sub{font-family:var(--mono);font-size:10px;margin-top:5px}
+.lbl-slow{color:var(--slow)}.val-slow{color:var(--slow)}
+.lbl-fast{color:var(--fast)}.val-fast{color:var(--fast)}
+.val-meet{color:var(--meet)}.val-dup{color:var(--dup)}
+
+/* ── Status ── */
+.status-card{
+  background:#fff;border:2px solid var(--bd2);border-radius:10px;
+  padding:15px 20px;margin-bottom:14px;font-family:var(--mono);font-size:12.5px;
+  line-height:1.75;min-height:56px;border-left:5px solid var(--bd2);transition:border-color .3s;
+  animation:up .4s ease .3s forwards;opacity:0;
+}
+.sc-p1{border-left-color:var(--p1)}
+.sc-p2{border-left-color:var(--p2)}
+.sc-meet{border-left-color:var(--meet)}
+.sc-done{border-left-color:var(--dup)}
+.hs{color:var(--slow);font-weight:700}
+.hf{color:var(--fast);font-weight:700}
+.hmt{color:var(--meet);font-weight:700}
+.hd{color:var(--dup);font-weight:700}
+
+/* ── Code ── */
+.code-card{background:var(--ink);border-radius:12px;overflow:hidden;animation:up .4s ease .35s forwards;opacity:0}
+.code-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;border-bottom:1px solid #2a2010;background:#130f07}
+.code-hdr span{font-family:var(--mono);font-size:11px;color:#5a4a30}
+.dots{display:flex;gap:5px}.dot{width:9px;height:9px;border-radius:50%}
+pre{padding:20px 24px;font-family:var(--mono);font-size:12px;line-height:1.9;color:#6a5a48;overflow-x:auto}
+.kw{color:#c792ea}.fn{color:#82aaff}.vr{color:#ffcb6b}.nm{color:#f78c6c}.cm{color:#2e2518;font-style:italic}
+.cl{display:block;border-radius:3px;padding:0 6px;margin:0 -6px;transition:background .2s}
+.cl.lit-p1{background:rgba(14,82,160,.1);border-left:2px solid var(--p1);padding-left:10px;margin-left:-10px;color:#a0c0e8}
+.cl.lit-p2{background:rgba(122,48,0,.1);border-left:2px solid var(--p2);padding-left:10px;margin-left:-10px;color:#d0a880}
+.cl.lit-done{background:rgba(139,26,107,.1);border-left:2px solid var(--dup);padding-left:10px;margin-left:-10px;color:#d0a0c0}
+
+.prog-row{display:flex;align-items:center;gap:10px;padding:0 24px 14px}
+.prog-lbl{font-family:var(--mono);font-size:10px;color:#5a4a30;white-space:nowrap}
+.prog-track{flex:1;height:3px;background:#2a2010;border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--slow),var(--fast));transition:width .3s}
+
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="tag-row">
+      <span class="tag tm">Medium</span>
+      <span class="tag tf">Floyd's Cycle</span>
+      <span class="tag ta">Array · T2</span>
+    </div>
+    <h1><span class="d">Find Duplicate</span><br/><span class="f">Floyd's Cycle Detection</span></h1>
+    <p class="sub">Treat array as linked list · slow moves 1 step · fast moves 2 steps · O(n) time · O(1) space</p>
+  </div>
+
+  <!-- Controls -->
+  <div class="top-bar">
+    <div class="in-box">
+      <label>Array (values 1..n, one duplicate)</label>
+      <input id="inArr" value="1, 3, 4, 2, 2"/>
+    </div>
+    <button class="btn btn-play" onclick="window.startAuto()">▶ Play</button>
+    <button class="btn btn-step" onclick="window.stepFwd()">Step →</button>
+    <button class="btn btn-rst"  onclick="window.resetAll()">↺ Reset</button>
+    <div class="spd-row">
+      <span class="spd-lbl">Speed</span>
+      <button class="sb" onclick="window.setSpd(1300)" id="ss">Slow</button>
+      <button class="sb on" onclick="window.setSpd(750)" id="sm">Med</button>
+      <button class="sb" onclick="window.setSpd(200)" id="sf">Fast</button>
+    </div>
+  </div>
+
+  <!-- Phase banner -->
+  <div class="phase-banner">
+    <div class="phase ph1" id="ph0">① Phase 1 — Find Meeting Point</div>
+    <div class="phase ph2" id="ph1">② Phase 2 — Find Cycle Entrance</div>
+    <div class="phase phd" id="ph2">✓ Duplicate Found</div>
+  </div>
+
+  <!-- Pointer values -->
+  <div class="ptr-card">
+    <div class="pc">
+      <div class="pc-lbl lbl-slow">🐢 Slow (moves 1 step)</div>
+      <div class="pc-val val-slow" id="ptrSlow">—</div>
+      <div class="pc-sub" style="color:var(--muted)" id="ptrSlowNote">slow = nums[slow]</div>
+    </div>
+    <div class="pc">
+      <div class="pc-lbl lbl-fast">🐇 Fast (moves 2 steps)</div>
+      <div class="pc-val val-fast" id="ptrFast">—</div>
+      <div class="pc-sub" style="color:var(--muted)" id="ptrFastNote">fast = nums[nums[fast]]</div>
+    </div>
+  </div>
+
+  <!-- Array map -->
+  <div class="map-card">
+    <div class="sec-lbl">Index → Value Map (array as linked list: index i points to nums[i])</div>
+    <div class="map-row" id="mapIdxRow"></div>
+    <div class="map-row" id="mapValRow"></div>
+  </div>
+
+  <!-- Linked list visual -->
+  <div class="list-card">
+    <div class="sec-lbl">Linked List View — node i points to nums[i]</div>
+    <div class="linked-list" id="linkedList"></div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-card" id="statusCard">Press ▶ Play or Step → to begin.</div>
+
+  <!-- Code -->
+  <div class="code-card">
+    <div class="code-hdr">
+      <div class="dots">
+        <div class="dot" style="background:#f06060"></div>
+        <div class="dot" style="background:#f0c040"></div>
+        <div class="dot" style="background:#4af0a0"></div>
+      </div>
+      <span>findDuplicate.js</span>
+    </div>
+    <pre>
+<span class="cl" id="ln0"><span class="kw">function</span> <span class="fn">findDuplicate</span>(nums) {</span>
+<span class="cl" id="ln1">  <span class="cm">// Phase 1: detect cycle — slow=1 step, fast=2 steps</span></span>
+<span class="cl" id="ln2">  <span class="kw">let</span> <span class="vr">slow</span> = nums[<span class="nm">0</span>];</span>
+<span class="cl" id="ln3">  <span class="kw">let</span> <span class="vr">fast</span> = nums[<span class="nm">0</span>];</span>
+<span class="cl" id="ln4"> </span>
+<span class="cl" id="ln5">  <span class="kw">do</span> {</span>
+<span class="cl" id="ln6">    <span class="vr">slow</span> = nums[<span class="vr">slow</span>];            <span class="cm">// 1 step</span></span>
+<span class="cl" id="ln7">    <span class="vr">fast</span> = nums[nums[<span class="vr">fast</span>]];      <span class="cm">// 2 steps</span></span>
+<span class="cl" id="ln8">  } <span class="kw">while</span> (<span class="vr">slow</span> !== <span class="vr">fast</span>);</span>
+<span class="cl" id="ln9"> </span>
+<span class="cl" id="ln10">  <span class="cm">// Phase 2: find entrance — reset fast to start</span></span>
+<span class="cl" id="ln11">  <span class="vr">fast</span> = nums[<span class="nm">0</span>];</span>
+<span class="cl" id="ln12"> </span>
+<span class="cl" id="ln13">  <span class="kw">while</span> (<span class="vr">slow</span> !== <span class="vr">fast</span>) {</span>
+<span class="cl" id="ln14">    <span class="vr">slow</span> = nums[<span class="vr">slow</span>];            <span class="cm">// both move 1 step</span></span>
+<span class="cl" id="ln15">    <span class="vr">fast</span> = nums[<span class="vr">fast</span>];</span>
+<span class="cl" id="ln16">  }</span>
+<span class="cl" id="ln17"> </span>
+<span class="cl" id="ln18">  <span class="kw">return</span> <span class="vr">slow</span>;  <span class="cm">// = duplicate number</span></span>
+<span class="cl" id="ln19">}</span></pre>
+    <div class="prog-row">
+      <span class="prog-lbl" id="stepLbl">0 / 0</span>
+      <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function genSteps(nums) {
+  const n = nums.length;
+  const steps = [];
+
+  function snap(phase, slow, fast, msg, line, litCls) {
+    steps.push({ nums, n, phase, slow, fast, msg, line, litCls });
+  }
+
+  // Init
+  let slow = nums[0], fast = nums[0];
+  snap('p1', slow, fast,
+    `Init: <span class="hs">slow = nums[0] = ${slow}</span>, <span class="hf">fast = nums[0] = ${fast}</span>. Phase 1 begins — slow moves 1 step, fast moves 2 steps.`,
+    'ln2', 'lit-p1');
+
+  // Phase 1 — detect cycle
+  let iter = 0;
+  do {
+    const ps = slow, pf = fast;
+    slow = nums[slow];
+    fast = nums[nums[fast]];
+    iter++;
+    const meeting = slow === fast;
+    snap('p1', slow, fast,
+      meeting
+        ? `<span class="hmt">Meeting point!</span> slow = fast = ${slow}. Cycle confirmed. Starting Phase 2.`
+        : `Step ${iter}: <span class="hs">slow → nums[${ps}] = ${slow}</span> &nbsp;|&nbsp; <span class="hf">fast → nums[nums[${pf}]] = ${fast}</span>`,
+      meeting ? 'ln8' : 'ln6', 'lit-p1');
+    if (meeting) break;
+    if (iter > 20) break; // safety
+  } while (slow !== fast);
+
+  // Phase 2 — find entrance
+  fast = nums[0];
+  snap('p2', slow, fast,
+    `Phase 2: Reset <span class="hf">fast = nums[0] = ${fast}</span>. Both now move 1 step each. They'll meet at the <span class="hd">duplicate</span>.`,
+    'ln11', 'lit-p2');
+
+  iter = 0;
+  while (slow !== fast) {
+    const ps = slow, pf = fast;
+    slow = nums[slow];
+    fast = nums[fast];
+    iter++;
+    const meeting = slow === fast;
+    snap(meeting ? 'done' : 'p2', slow, fast,
+      meeting
+        ? `<span class="hd">✓ Duplicate = ${slow}!</span> Both pointers meet at the cycle entrance — the duplicated number.`
+        : `Step ${iter}: <span class="hs">slow → nums[${ps}] = ${slow}</span> &nbsp;|&nbsp; <span class="hf">fast → nums[${pf}] = ${fast}</span>`,
+      meeting ? 'ln18' : 'ln14', meeting ? 'lit-done' : 'lit-p2');
+    if (iter > 20) break;
+  }
+
+  return steps;
+}
+
+// ── Render ──────────────────────────────────────────────────
+let steps = [], curStep = -1, timer = null, speed = 750;
+
+function renderStep(idx) {
+  if (idx < 0 || idx >= steps.length) return;
+  const st = steps[idx]; curStep = idx;
+  const { nums, n, phase, slow, fast, msg, line, litCls } = st;
+  const isDone = phase === 'done';
+  const isMeet = (phase === 'p1' && slow === fast && idx > 0);
+
+  // Phase banner
+  ['ph0','ph1','ph2'].forEach(id => document.getElementById(id).className =
+    document.getElementById(id).className.replace(/ on/g,''));
+  if (phase === 'p1') document.getElementById('ph0').classList.add('on');
+  else if (phase === 'p2') document.getElementById('ph1').classList.add('on');
+  else document.getElementById('ph2').classList.add('on');
+
+  // Pointer cards
+  document.getElementById('ptrSlow').textContent = slow;
+  document.getElementById('ptrSlow').className = 'pc-val ' + (isDone ? 'val-dup' : isMeet ? 'val-meet' : 'val-slow');
+  document.getElementById('ptrFast').textContent = fast;
+  document.getElementById('ptrFast').className = 'pc-val ' + (isDone ? 'val-dup' : isMeet ? 'val-meet' : 'val-fast');
+  document.getElementById('ptrSlowNote').textContent = phase === 'p1' ? 'slow = nums[slow]  (1 step)' : 'slow = nums[slow]  (1 step)';
+  document.getElementById('ptrFastNote').textContent = phase === 'p1' ? 'fast = nums[nums[fast]]  (2 steps)' : 'fast = nums[fast]  (1 step)';
+
+  // Array map
+  const idxRow = document.getElementById('mapIdxRow');
+  const valRow = document.getElementById('mapValRow');
+  idxRow.innerHTML = ''; valRow.innerHTML = '';
+
+  nums.forEach((v, i) => {
+    // idx cell
+    const ic = document.createElement('div'); ic.className = 'map-cell';
+    const iLbl = document.createElement('div'); iLbl.className = 'mc-idx'; iLbl.textContent = `[${i}]`;
+    const iVal = document.createElement('div'); iVal.className = 'mc-val';
+    iVal.textContent = i;
+    ic.appendChild(iLbl); ic.appendChild(iVal); idxRow.appendChild(ic);
+
+    // val cell
+    const vc = document.createElement('div'); vc.className = 'map-cell';
+    const vArr = document.createElement('div'); vArr.className = 'mc-arrow'; vArr.textContent = '↓';
+    const vVal = document.createElement('div'); vVal.className = 'mc-val';
+    vVal.textContent = v;
+    const bothHere = slow === i && fast === i;
+    const slowHere = slow === i;
+    const fastHere = fast === i;
+    if (isDone && v === slow) vVal.classList.add('mc-dup');
+    else if (bothHere || isMeet) vVal.classList.add('mc-both');
+    else if (slowHere) vVal.classList.add('mc-slow');
+    else if (fastHere) vVal.classList.add('mc-fast');
+    vc.appendChild(vArr); vc.appendChild(vVal); valRow.appendChild(vc);
+  });
+
+  // Linked list visual
+  const ll = document.getElementById('linkedList');
+  ll.innerHTML = '';
+  nums.forEach((v, i) => {
+    const nw = document.createElement('div'); nw.className = 'node-wrap';
+
+    // pointers under node
+    const ptrs = document.createElement('div'); ptrs.className = 'node-ptrs';
+    const bothHere = slow === i && fast === i;
+    if (!isDone) {
+      if (bothHere || (isMeet && slow === i)) {
+        const pl = document.createElement('span'); pl.className = 'ptr-lbl pl-meet'; pl.textContent = 'S=F'; ptrs.appendChild(pl);
+      } else {
+        if (slow === i) { const pl = document.createElement('span'); pl.className='ptr-lbl pl-slow'; pl.textContent='S'; ptrs.appendChild(pl); }
+        if (fast === i) { const pl = document.createElement('span'); pl.className='ptr-lbl pl-fast'; pl.textContent='F'; ptrs.appendChild(pl); }
+      }
+    } else if (v === slow) {
+      const pl = document.createElement('span'); pl.className='ptr-lbl pl-dup'; pl.textContent='DUP'; ptrs.appendChild(pl);
+    }
+
+    const node = document.createElement('div'); node.className = 'node';
+    node.innerHTML = `<span class="nval">${i}</span><span class="nidx">→${v}</span>`;
+
+    const bothAt = slow === i && fast === i;
+    if (isDone && v === slow) node.classList.add('n-dup');
+    else if (isDone && i === slow) node.classList.add('n-dup');
+    else if (bothAt || (isMeet && slow === i)) node.classList.add('n-both');
+    else if (slow === i) node.classList.add(phase === 'p1' ? 'n-slow' : 'n-p2slow');
+    else if (fast === i) node.classList.add(phase === 'p1' ? 'n-fast' : 'n-p2fast');
+
+    nw.appendChild(ptrs); nw.appendChild(node);
+    ll.appendChild(nw);
+
+    // arrow connector (not after last)
+    if (i < n - 1) {
+      const ac = document.createElement('div'); ac.className = 'arrow-conn';
+      ac.innerHTML = `<svg width="28" height="20"><defs><marker id="ah${i}" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#b8ac98"/></marker></defs><line x1="0" y1="10" x2="22" y2="10" stroke="#b8ac98" stroke-width="1.5" marker-end="url(#ah${i})"/></svg>`;
+      ll.appendChild(ac);
+    }
+  });
+
+  // Cycle label
+  if (isDone || phase === 'p2') {
+    const cl = document.createElement('div');
+    cl.style.cssText = 'display:flex;align-items:center;gap:6px;margin-left:8px';
+    cl.innerHTML = `<svg width="32" height="32"><path d="M4,16 Q4,4 16,4 Q28,4 28,16 Q28,28 16,28 Q4,28 4,16" fill="none" stroke="rgba(139,26,107,.4)" stroke-width="2" stroke-dasharray="4,3"/><text x="16" y="20" font-size="9" text-anchor="middle" fill="rgba(139,26,107,.7)" font-family="monospace">↻</text></svg><span style="font-family:var(--mono);font-size:9px;color:var(--dup)">CYCLE</span>`;
+    ll.appendChild(cl);
+  }
+
+  // Status
+  const sc = document.getElementById('statusCard');
+  sc.innerHTML = msg;
+  sc.className = 'status-card ' +
+    (phase === 'p1' ? (isMeet ? 'sc-meet' : 'sc-p1') : phase === 'p2' ? 'sc-p2' : 'sc-done');
+
+  // Code
+  document.querySelectorAll('.cl').forEach(el => el.className = 'cl');
+  if (line) { const el = document.getElementById(line); if (el) el.classList.add(litCls); }
+
+  // Progress
+  document.getElementById('stepLbl').textContent = `${idx + 1} / ${steps.length}`;
+  document.getElementById('progFill').style.width = `${((idx + 1) / steps.length) * 100}%`;
+}
+
+function parse() {
+  return document.getElementById('inArr').value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+}
+function build() {
+  const arr = parse();
+  if (arr.length < 3) { alert('Enter at least 3 numbers.'); return false; }
+  steps = genSteps(arr); curStep = -1; return true;
+}
+
+window.resetAll  = function () { clearTimeout(timer); timer = null; if (!build()) return; renderStep(0); };
+window.stepFwd   = function () { clearTimeout(timer); timer = null; if (!steps.length) { if (!build()) return; } if (curStep < steps.length - 1) renderStep(curStep + 1); };
+window.startAuto = function () {
+  if (!steps.length || curStep >= steps.length - 1) { if (!build()) return; renderStep(0); }
+  clearTimeout(timer);
+  function tick() { if (curStep < steps.length - 1) { renderStep(curStep + 1); timer = setTimeout(tick, speed); } }
+  timer = setTimeout(tick, speed);
+};
+window.setSpd = function (ms) {
+  speed = ms;
+  ['ss','sm','sf'].forEach(id => document.getElementById(id).classList.remove('on'));
+  if (ms === 1300) document.getElementById('ss').classList.add('on');
+  else if (ms === 750) document.getElementById('sm').classList.add('on');
+  else document.getElementById('sf').classList.add('on');
+};
+
+window.addEventListener('DOMContentLoaded', () => { build(); renderStep(0); });
+</script>
+</body>
+</html>
